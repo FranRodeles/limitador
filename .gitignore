@@ -37,3 +37,6 @@ target/
 #scripts
 boot.sh
 boot.ps1
+
+# Antigravity agents
+.agents/

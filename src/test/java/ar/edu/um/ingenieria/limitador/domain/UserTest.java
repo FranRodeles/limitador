@@ -47,4 +47,12 @@ class UserTest {
         assertThat(user.getRoles()).hasSize(1);
         assertThat(user.getRoles()).contains(role);
     }
+
+    @Test
+    void shouldCreateUserWithPassword() {
+        var user = new User();
+        user.setPassword("secretPassword");
+
+        assertThat(user.getPassword()).isEqualTo("secretPassword");
+    }
 }
