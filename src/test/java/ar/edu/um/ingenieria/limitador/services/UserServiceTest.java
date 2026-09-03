@@ -31,8 +31,8 @@ class UserServiceTest {
 
     @Test
     void shouldReturnAllUsers() {
-        var u1 = new User(1L, "jdoe", "jdoe@example.com", true, null, null);
-        var u2 = new User(2L, "jane", "jane@example.com", false, null, null);
+        var u1 = new User(1L, "jdoe", "jdoe@example.com","123", true, null, null);
+        var u2 = new User(2L, "jane", "jane@example.com","456", false, null, null);
         when(userRepository.findAll()).thenReturn(List.of(u1, u2));
 
         List<User> users = userService.findAll();
@@ -43,7 +43,7 @@ class UserServiceTest {
 
     @Test
     void shouldReturnUserById() {
-        var user = new User(1L, "jdoe", "jdoe@example.com", true, null, null);
+        var user = new User(1L, "jdoe", "jdoe@example.com","123", true, null, null);
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
         Optional<User> found = userService.findById(1L);
@@ -63,8 +63,8 @@ class UserServiceTest {
 
     @Test
     void shouldSaveUser() {
-        var user = new User(null, "newuser", "new@example.com", true, null, null);
-        var saved = new User(1L, "newuser", "new@example.com", true, null, null);
+        var user = new User(null, "newuser", "new@example.com", "789", true, null, null);
+        var saved = new User(1L, "newuser", "new@example.com", "789", true, null, null);
         when(userRepository.save(any(User.class))).thenReturn(saved);
 
         User result = userService.save(user);
@@ -75,8 +75,8 @@ class UserServiceTest {
 
     @Test
     void shouldUpdateExistingUser() {
-        var existing = new User(1L, "old", "old@example.com", false, null, null);
-        var updated = new User(1L, "new", "new@example.com", true, null, null);
+        var existing = new User(1L, "old", "old@example.com", "123", true, null, null);
+        var updated = new User(1L, "new", "new@example.com", "456", false, null, null);
         when(userRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(userRepository.save(any(User.class))).thenReturn(updated);
 
@@ -89,7 +89,7 @@ class UserServiceTest {
     @Test
     void shouldThrowWhenUpdatingNonexistent() {
         when(userRepository.findById(99L)).thenReturn(Optional.empty());
-        var user = new User(99L, "x", "x@example.com", true, null, null);
+        var user = new User(99L, "x", "x@example.com", "789", true, null, null);
 
         assertThatThrownBy(() -> userService.update(99L, user))
             .isInstanceOf(RuntimeException.class)
@@ -100,7 +100,7 @@ class UserServiceTest {
 
     @Test
     void shouldDeleteUserById() {
-        var user = new User(1L, "todelete", "del@example.com", true, null, null);
+        var user = new User(1L, "todelete", "del@example.com", "123", true, null, null);
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
         userService.deleteById(1L);

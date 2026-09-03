@@ -40,8 +40,8 @@ class UserControllerTest {
 
     @Test
     void shouldReturnAllUsers() throws Exception {
-        var u1 = new User(1L, "jdoe", "jdoe@example.com", true, null, null);
-        var u2 = new User(2L, "jane", "jane@example.com", false, null, null);
+        var u1 = new User(1L, "jdoe", "jdoe@example.com","123", true, null, null);
+        var u2 = new User(2L, "jane", "jane@example.com","456", false, null, null);
         when(userService.findAll()).thenReturn(List.of(u1, u2));
 
         mockMvc.perform(get("/api/users"))
@@ -53,7 +53,7 @@ class UserControllerTest {
 
     @Test
     void shouldReturnUserById() throws Exception {
-        var user = new User(1L, "jdoe", "jdoe@example.com", true, null, null);
+        var user = new User(1L, "jdoe", "jdoe@example.com","123", true, null, null);
         when(userService.findById(1L)).thenReturn(Optional.of(user));
 
         mockMvc.perform(get("/api/users/1"))
@@ -71,8 +71,8 @@ class UserControllerTest {
 
     @Test
     void shouldCreateUser() throws Exception {
-        var user = new User(null, "newuser", "new@example.com", true, null, null);
-        var saved = new User(1L, "newuser", "new@example.com", true, null, null);
+        var user = new User(null, "newuser", "new@example.com", "789", true, null, null);
+        var saved = new User(1L, "newuser", "new@example.com", "789", true, null, null);
         when(userService.save(any(User.class))).thenReturn(saved);
 
         mockMvc.perform(post("/api/users")
@@ -85,7 +85,7 @@ class UserControllerTest {
 
     @Test
     void shouldUpdateUser() throws Exception {
-        var updated = new User(1L, "updated", "updated@example.com", false, null, null);
+        var updated = new User(1L, "updated", "updated@example.com", "456", false, null, null);
         when(userService.update(any(Long.class), any(User.class))).thenReturn(updated);
 
         mockMvc.perform(put("/api/users/1")
