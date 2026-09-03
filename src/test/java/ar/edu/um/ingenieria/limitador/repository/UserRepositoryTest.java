@@ -24,6 +24,7 @@ class UserRepositoryTest {
         var user = new User();
         user.setUsername("jdoe");
         user.setEmail("jdoe@example.com");
+        user.setPassword("password123");
         user.setActivated(true);
 
         var saved = userRepository.save(user);
@@ -40,11 +41,13 @@ class UserRepositoryTest {
         var user1 = new User();
         user1.setUsername("jdoe");
         user1.setEmail("jdoe@example.com");
+        user1.setPassword("password123");
         user1.setActivated(true);
 
         var user2 = new User();
         user2.setUsername("jane");
         user2.setEmail("jane@example.com");
+        user2.setPassword("password456");
         user2.setActivated(false);
 
         userRepository.save(user1);
@@ -59,6 +62,7 @@ class UserRepositoryTest {
         var user = new User();
         user.setUsername("toDelete");
         user.setEmail("delete@example.com");
+        user.setPassword("password123");
         user.setActivated(true);
 
         var saved = userRepository.save(user);
@@ -78,6 +82,7 @@ class UserRepositoryTest {
         var user = new User();
         user.setUsername("admin");
         user.setEmail("admin@example.com");
+        user.setPassword("password123");
         user.setActivated(true);
         user.getRoles().add(role);
 
@@ -97,6 +102,7 @@ class UserRepositoryTest {
         var user = new User();
         user.setUsername("juan");
         user.setEmail("juan@example.com");
+        user.setPassword("password123");
         user.setActivated(true);
         user.setUserData(userData);
 

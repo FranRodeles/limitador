@@ -29,10 +29,18 @@ class RoleServiceTest {
     @InjectMocks
     private RoleServiceImpl roleService;
 
+    private Role createRole(Long id, String description, String roleName) {
+        Role role = new Role();
+        role.setId(id);
+        role.setDescription(description);
+        role.setRoleName(roleName);
+        return role;
+    }
+
     @Test
     void shouldReturnAllRoles() {
-        var role1 = new Role(1L, "Admin", "ROLE_ADMIN", null);
-        var role2 = new Role(2L, "User", "ROLE_USER", null);
+        var role1 = createRole(1L, "Admin", "ROLE_ADMIN");
+        var role2 = createRole(2L, "User", "ROLE_USER");
         when(roleRepository.findAll()).thenReturn(List.of(role1, role2));
 
         List<Role> roles = roleService.findAll();
@@ -43,7 +51,7 @@ class RoleServiceTest {
 
     @Test
     void shouldReturnRoleById() {
-        var role = new Role(1L, "Admin", "ROLE_ADMIN", null);
+        var role = createRole(1L, "Admin", "ROLE_ADMIN");
         when(roleRepository.findById(1L)).thenReturn(Optional.of(role));
 
         Optional<Role> found = roleService.findById(1L);
@@ -63,8 +71,8 @@ class RoleServiceTest {
 
     @Test
     void shouldSaveRole() {
-        var role = new Role(null, "Editor", "ROLE_EDITOR", null);
-        var saved = new Role(1L, "Editor", "ROLE_EDITOR", null);
+        var role = createRole(null, "Editor", "ROLE_EDITOR");
+        var saved = createRole(1L, "Editor", "ROLE_EDITOR");
         when(roleRepository.save(any(Role.class))).thenReturn(saved);
 
         Role result = roleService.save(role);
@@ -76,8 +84,8 @@ class RoleServiceTest {
 
     @Test
     void shouldUpdateExistingRole() {
-        var existing = new Role(1L, "Old Desc", "ROLE_OLD", null);
-        var updated = new Role(1L, "New Desc", "ROLE_NEW", null);
+        var existing = createRole(1L, "Old Desc", "ROLE_OLD");
+        var updated = createRole(1L, "New Desc", "ROLE_NEW");
         when(roleRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(roleRepository.save(any(Role.class))).thenReturn(updated);
 
@@ -91,7 +99,7 @@ class RoleServiceTest {
     @Test
     void shouldThrowWhenUpdatingNonexistentRole() {
         when(roleRepository.findById(99L)).thenReturn(Optional.empty());
-        var role = new Role(99L, "Desc", "ROLE_X", null);
+        var role = createRole(99L, "Desc", "ROLE_X");
 
         assertThatThrownBy(() -> roleService.update(99L, role))
             .isInstanceOf(RuntimeException.class)
@@ -102,7 +110,7 @@ class RoleServiceTest {
 
     @Test
     void shouldDeleteRoleById() {
-        var role = new Role(1L, "Admin", "ROLE_ADMIN", null);
+        var role = createRole(1L, "Admin", "ROLE_ADMIN");
         when(roleRepository.findById(1L)).thenReturn(Optional.of(role));
 
         roleService.deleteById(1L);

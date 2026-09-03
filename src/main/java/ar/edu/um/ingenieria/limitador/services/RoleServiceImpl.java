@@ -29,7 +29,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public Role save(Role role) {
-        return roleRepository.saveAndFlush(role);
+        return roleRepository.save(role);
     }
 
     @Override
@@ -38,7 +38,7 @@ public class RoleServiceImpl implements RoleService {
             throw new RuntimeException("Role not found with id: " + id);
         }
         role.setId(id);
-        return roleRepository.saveAndFlush(role);
+        return roleRepository.save(role);
     }
 
     @Override

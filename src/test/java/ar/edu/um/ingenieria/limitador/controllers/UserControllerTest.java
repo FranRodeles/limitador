@@ -38,10 +38,20 @@ class UserControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    private User createUser(Long id, String username, String email, String password, Boolean activated) {
+        User user = new User();
+        user.setId(id);
+        user.setUsername(username);
+        user.setEmail(email);
+        user.setPassword(password);
+        user.setActivated(activated);
+        return user;
+    }
+
     @Test
     void shouldReturnAllUsers() throws Exception {
-        var u1 = new User(1L, "jdoe", "jdoe@example.com","123", true, null, null);
-        var u2 = new User(2L, "jane", "jane@example.com","456", false, null, null);
+        var u1 = createUser(1L, "jdoe", "jdoe@example.com", "123", true);
+        var u2 = createUser(2L, "jane", "jane@example.com", "456", false);
         when(userService.findAll()).thenReturn(List.of(u1, u2));
 
         mockMvc.perform(get("/api/users"))
@@ -53,7 +63,7 @@ class UserControllerTest {
 
     @Test
     void shouldReturnUserById() throws Exception {
-        var user = new User(1L, "jdoe", "jdoe@example.com","123", true, null, null);
+        var user = createUser(1L, "jdoe", "jdoe@example.com", "123", true);
         when(userService.findById(1L)).thenReturn(Optional.of(user));
 
         mockMvc.perform(get("/api/users/1"))
@@ -71,8 +81,8 @@ class UserControllerTest {
 
     @Test
     void shouldCreateUser() throws Exception {
-        var user = new User(null, "newuser", "new@example.com", "789", true, null, null);
-        var saved = new User(1L, "newuser", "new@example.com", "789", true, null, null);
+        var user = createUser(null, "newuser", "new@example.com", "789", true);
+        var saved = createUser(1L, "newuser", "new@example.com", "789", true);
         when(userService.save(any(User.class))).thenReturn(saved);
 
         mockMvc.perform(post("/api/users")
@@ -85,7 +95,7 @@ class UserControllerTest {
 
     @Test
     void shouldUpdateUser() throws Exception {
-        var updated = new User(1L, "updated", "updated@example.com", "456", false, null, null);
+        var updated = createUser(1L, "updated", "updated@example.com", "456", false);
         when(userService.update(any(Long.class), any(User.class))).thenReturn(updated);
 
         mockMvc.perform(put("/api/users/1")

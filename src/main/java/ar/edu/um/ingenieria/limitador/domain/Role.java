@@ -12,7 +12,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -20,7 +19,6 @@ import lombok.NoArgsConstructor;
 @Table(name = "roles")
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 public class Role {
 
     @Id

@@ -38,10 +38,20 @@ class UserDataControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    private UserData createUserData(Long id, String firstName, String lastName, String address, String phoneNumber) {
+        UserData ud = new UserData();
+        ud.setId(id);
+        ud.setFirstName(firstName);
+        ud.setLastName(lastName);
+        ud.setAddress(address);
+        ud.setPhoneNumber(phoneNumber);
+        return ud;
+    }
+
     @Test
     void shouldReturnAllUserData() throws Exception {
-        var ud1 = new UserData(1L, "Juan", "Perez", "Calle 1", "111", null);
-        var ud2 = new UserData(2L, "Maria", "Lopez", "Calle 2", "222", null);
+        var ud1 = createUserData(1L, "Juan", "Perez", "Calle 1", "111");
+        var ud2 = createUserData(2L, "Maria", "Lopez", "Calle 2", "222");
         when(userDataService.findAll()).thenReturn(List.of(ud1, ud2));
 
         mockMvc.perform(get("/api/users-data"))
@@ -53,7 +63,7 @@ class UserDataControllerTest {
 
     @Test
     void shouldReturnUserDataById() throws Exception {
-        var ud = new UserData(1L, "Juan", "Perez", "Calle 1", "111", null);
+        var ud = createUserData(1L, "Juan", "Perez", "Calle 1", "111");
         when(userDataService.findById(1L)).thenReturn(Optional.of(ud));
 
         mockMvc.perform(get("/api/users-data/1"))
@@ -71,8 +81,8 @@ class UserDataControllerTest {
 
     @Test
     void shouldCreateUserData() throws Exception {
-        var ud = new UserData(null, "Carlos", null, null, "333", null);
-        var saved = new UserData(1L, "Carlos", null, null, "333", null);
+        var ud = createUserData(null, "Carlos", null, null, "333");
+        var saved = createUserData(1L, "Carlos", null, null, "333");
         when(userDataService.save(any(UserData.class))).thenReturn(saved);
 
         mockMvc.perform(post("/api/users-data")
@@ -85,7 +95,7 @@ class UserDataControllerTest {
 
     @Test
     void shouldUpdateUserData() throws Exception {
-        var updated = new UserData(1L, "Updated", "New", "Addr", "555", null);
+        var updated = createUserData(1L, "Updated", "New", "Addr", "555");
         when(userDataService.update(any(Long.class), any(UserData.class))).thenReturn(updated);
 
         mockMvc.perform(put("/api/users-data/1")

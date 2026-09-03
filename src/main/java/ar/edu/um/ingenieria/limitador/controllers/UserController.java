@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import ar.edu.um.ingenieria.limitador.domain.User;
+import ar.edu.um.ingenieria.limitador.dto.UserDTO;
 import ar.edu.um.ingenieria.limitador.services.UserService;
 
 @RestController
@@ -54,5 +55,29 @@ public class UserController {
     public ResponseEntity<Void> deleteById(@PathVariable Long id) {
         userService.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/dto")
+    public ResponseEntity<List<UserDTO>> findAllDTOs() {
+        return ResponseEntity.ok(userService.findAllDTOs());
+    }
+
+    @GetMapping("/dto/{id}")
+    public ResponseEntity<UserDTO> findDTOById(@PathVariable Long id) {
+        return userService.findDTOById(id)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/dto")
+    public ResponseEntity<UserDTO> saveDTO(@RequestBody UserDTO userDTO) {
+        UserDTO saved = userService.saveDTO(userDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    }
+
+    @PutMapping("/dto/{id}")
+    public ResponseEntity<UserDTO> updateDTO(@PathVariable Long id, @RequestBody UserDTO userDTO) {
+        UserDTO updated = userService.updateDTO(id, userDTO);
+        return ResponseEntity.ok(updated);
     }
 }

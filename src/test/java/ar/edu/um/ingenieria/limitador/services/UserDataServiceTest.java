@@ -29,10 +29,20 @@ class UserDataServiceTest {
     @InjectMocks
     private UserDataServiceImpl userDataService;
 
+    private UserData createUserData(Long id, String firstName, String lastName, String address, String phoneNumber) {
+        UserData ud = new UserData();
+        ud.setId(id);
+        ud.setFirstName(firstName);
+        ud.setLastName(lastName);
+        ud.setAddress(address);
+        ud.setPhoneNumber(phoneNumber);
+        return ud;
+    }
+
     @Test
     void shouldReturnAllUserData() {
-        var ud1 = new UserData(1L, "Juan", "Perez", "Calle 1", "111", null);
-        var ud2 = new UserData(2L, "Maria", "Lopez", "Calle 2", "222", null);
+        var ud1 = createUserData(1L, "Juan", "Perez", "Calle 1", "111");
+        var ud2 = createUserData(2L, "Maria", "Lopez", "Calle 2", "222");
         when(userDataRepository.findAll()).thenReturn(List.of(ud1, ud2));
 
         List<UserData> result = userDataService.findAll();
@@ -43,7 +53,7 @@ class UserDataServiceTest {
 
     @Test
     void shouldReturnUserDataById() {
-        var ud = new UserData(1L, "Juan", "Perez", "Calle 1", "111", null);
+        var ud = createUserData(1L, "Juan", "Perez", "Calle 1", "111");
         when(userDataRepository.findById(1L)).thenReturn(Optional.of(ud));
 
         Optional<UserData> found = userDataService.findById(1L);
@@ -63,8 +73,8 @@ class UserDataServiceTest {
 
     @Test
     void shouldSaveUserData() {
-        var ud = new UserData(null, "Carlos", null, null, "333", null);
-        var saved = new UserData(1L, "Carlos", null, null, "333", null);
+        var ud = createUserData(null, "Carlos", null, null, "333");
+        var saved = createUserData(1L, "Carlos", null, null, "333");
         when(userDataRepository.save(any(UserData.class))).thenReturn(saved);
 
         UserData result = userDataService.save(ud);
@@ -75,8 +85,8 @@ class UserDataServiceTest {
 
     @Test
     void shouldUpdateExistingUserData() {
-        var existing = new UserData(1L, "Old", null, null, "111", null);
-        var updated = new UserData(1L, "New", "Updated", "Address", "222", null);
+        var existing = createUserData(1L, "Old", null, null, "111");
+        var updated = createUserData(1L, "New", "Updated", "Address", "222");
         when(userDataRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(userDataRepository.save(any(UserData.class))).thenReturn(updated);
 
@@ -89,7 +99,7 @@ class UserDataServiceTest {
     @Test
     void shouldThrowWhenUpdatingNonexistent() {
         when(userDataRepository.findById(99L)).thenReturn(Optional.empty());
-        var ud = new UserData(99L, "X", null, null, "000", null);
+        var ud = createUserData(99L, "X", null, null, "000");
 
         assertThatThrownBy(() -> userDataService.update(99L, ud))
             .isInstanceOf(RuntimeException.class)
@@ -100,7 +110,7 @@ class UserDataServiceTest {
 
     @Test
     void shouldDeleteUserDataById() {
-        var ud = new UserData(1L, "To Delete", null, null, "999", null);
+        var ud = createUserData(1L, "To Delete", null, null, "999");
         when(userDataRepository.findById(1L)).thenReturn(Optional.of(ud));
 
         userDataService.deleteById(1L);

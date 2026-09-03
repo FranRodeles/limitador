@@ -29,7 +29,7 @@ public class UserDataServiceImpl implements UserDataService {
 
     @Override
     public UserData save(UserData userData) {
-        return userDataRepository.saveAndFlush(userData);
+        return userDataRepository.save(userData);
     }
 
     @Override
@@ -38,7 +38,7 @@ public class UserDataServiceImpl implements UserDataService {
             throw new RuntimeException("UserData not found with id: " + id);
         }
         userData.setId(id);
-        return userDataRepository.saveAndFlush(userData);
+        return userDataRepository.save(userData);
     }
 
     @Override

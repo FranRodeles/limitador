@@ -38,10 +38,18 @@ class RoleControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    private Role createRole(Long id, String description, String roleName) {
+        Role role = new Role();
+        role.setId(id);
+        role.setDescription(description);
+        role.setRoleName(roleName);
+        return role;
+    }
+
     @Test
     void shouldReturnAllRoles() throws Exception {
-        var role1 = new Role(1L, "Admin", "ROLE_ADMIN", null);
-        var role2 = new Role(2L, "User", "ROLE_USER", null);
+        var role1 = createRole(1L, "Admin", "ROLE_ADMIN");
+        var role2 = createRole(2L, "User", "ROLE_USER");
         when(roleService.findAll()).thenReturn(List.of(role1, role2));
 
         mockMvc.perform(get("/api/roles"))
@@ -53,7 +61,7 @@ class RoleControllerTest {
 
     @Test
     void shouldReturnRoleById() throws Exception {
-        var role = new Role(1L, "Admin", "ROLE_ADMIN", null);
+        var role = createRole(1L, "Admin", "ROLE_ADMIN");
         when(roleService.findById(1L)).thenReturn(Optional.of(role));
 
         mockMvc.perform(get("/api/roles/1"))
@@ -71,8 +79,8 @@ class RoleControllerTest {
 
     @Test
     void shouldCreateRole() throws Exception {
-        var role = new Role(null, "Editor", "ROLE_EDITOR", null);
-        var saved = new Role(1L, "Editor", "ROLE_EDITOR", null);
+        var role = createRole(null, "Editor", "ROLE_EDITOR");
+        var saved = createRole(1L, "Editor", "ROLE_EDITOR");
         when(roleService.save(any(Role.class))).thenReturn(saved);
 
         mockMvc.perform(post("/api/roles")
@@ -85,7 +93,7 @@ class RoleControllerTest {
 
     @Test
     void shouldUpdateRole() throws Exception {
-        var updated = new Role(1L, "Updated", "ROLE_UPDATED", null);
+        var updated = createRole(1L, "Updated", "ROLE_UPDATED");
         when(roleService.update(any(Long.class), any(Role.class))).thenReturn(updated);
 
         mockMvc.perform(put("/api/roles/1")

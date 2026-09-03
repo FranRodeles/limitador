@@ -18,6 +18,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import ar.edu.um.ingenieria.limitador.domain.User;
+import ar.edu.um.ingenieria.limitador.mapper.UserMapper;
+import ar.edu.um.ingenieria.limitador.repository.RoleRepository;
 import ar.edu.um.ingenieria.limitador.repository.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -26,13 +28,29 @@ class UserServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private RoleRepository roleRepository;
+
+    @Mock
+    private UserMapper userMapper;
+
     @InjectMocks
     private UserServiceImpl userService;
 
+    private User createUser(Long id, String username, String email, String password, Boolean activated) {
+        User user = new User();
+        user.setId(id);
+        user.setUsername(username);
+        user.setEmail(email);
+        user.setPassword(password);
+        user.setActivated(activated);
+        return user;
+    }
+
     @Test
     void shouldReturnAllUsers() {
-        var u1 = new User(1L, "jdoe", "jdoe@example.com","123", true, null, null);
-        var u2 = new User(2L, "jane", "jane@example.com","456", false, null, null);
+        var u1 = createUser(1L, "jdoe", "jdoe@example.com", "123", true);
+        var u2 = createUser(2L, "jane", "jane@example.com", "456", false);
         when(userRepository.findAll()).thenReturn(List.of(u1, u2));
 
         List<User> users = userService.findAll();
@@ -43,7 +61,7 @@ class UserServiceTest {
 
     @Test
     void shouldReturnUserById() {
-        var user = new User(1L, "jdoe", "jdoe@example.com","123", true, null, null);
+        var user = createUser(1L, "jdoe", "jdoe@example.com", "123", true);
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
         Optional<User> found = userService.findById(1L);
@@ -63,8 +81,8 @@ class UserServiceTest {
 
     @Test
     void shouldSaveUser() {
-        var user = new User(null, "newuser", "new@example.com", "789", true, null, null);
-        var saved = new User(1L, "newuser", "new@example.com", "789", true, null, null);
+        var user = createUser(null, "newuser", "new@example.com", "789", true);
+        var saved = createUser(1L, "newuser", "new@example.com", "789", true);
         when(userRepository.save(any(User.class))).thenReturn(saved);
 
         User result = userService.save(user);
@@ -75,8 +93,8 @@ class UserServiceTest {
 
     @Test
     void shouldUpdateExistingUser() {
-        var existing = new User(1L, "old", "old@example.com", "123", true, null, null);
-        var updated = new User(1L, "new", "new@example.com", "456", false, null, null);
+        var existing = createUser(1L, "old", "old@example.com", "123", true);
+        var updated = createUser(1L, "new", "new@example.com", "456", false);
         when(userRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(userRepository.save(any(User.class))).thenReturn(updated);
 
@@ -89,7 +107,7 @@ class UserServiceTest {
     @Test
     void shouldThrowWhenUpdatingNonexistent() {
         when(userRepository.findById(99L)).thenReturn(Optional.empty());
-        var user = new User(99L, "x", "x@example.com", "789", true, null, null);
+        var user = createUser(99L, "x", "x@example.com", "789", true);
 
         assertThatThrownBy(() -> userService.update(99L, user))
             .isInstanceOf(RuntimeException.class)
@@ -100,7 +118,7 @@ class UserServiceTest {
 
     @Test
     void shouldDeleteUserById() {
-        var user = new User(1L, "todelete", "del@example.com", "123", true, null, null);
+        var user = createUser(1L, "todelete", "del@example.com", "123", true);
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
         userService.deleteById(1L);
