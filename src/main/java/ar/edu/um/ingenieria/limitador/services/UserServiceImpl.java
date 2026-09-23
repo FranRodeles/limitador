@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import ar.edu.um.ingenieria.limitador.domain.Role;
@@ -20,11 +21,14 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserServiceImpl(UserRepository userRepository, RoleRepository roleRepository, UserMapper userMapper) {
+    public UserServiceImpl(UserRepository userRepository, RoleRepository roleRepository, 
+                          UserMapper userMapper, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.userMapper = userMapper;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -39,6 +43,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User save(User user) {
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
 
@@ -48,6 +53,7 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("User not found with id: " + id);
         }
         user.setId(id);
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
 
@@ -61,22 +67,31 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<UserDTO> findAllDTOs() {
-        return userMapper.toDtoList(userRepository.findAll());
+        return userMapper.toDtoList(userRepository.findAll()).stream()
+            .map(UserDTO::withoutPassword)
+            .toList();
     }
 
     @Override
     public Optional<UserDTO> findDTOById(Long id) {
-        return userRepository.findById(id).map(userMapper::toDto);
+        return userRepository.findById(id)
+            .map(userMapper::toDto)
+            .map(UserDTO::withoutPassword);
     }
 
     @Override
     public UserDTO saveDTO(UserDTO userDTO) {
         User entity = userMapper.toEntity(userDTO);
+        entity.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+        if (entity.getUserData() != null) {
+            entity.getUserData().setId(null);
+        }
         if (entity.getRoles() != null && !entity.getRoles().isEmpty()) {
+            entity.getRoles().forEach(role -> role.setId(null));
             entity.setRoles(resolveRoles(entity.getRoles()));
         }
         User saved = userRepository.save(entity);
-        return userMapper.toDto(saved);
+        return userMapper.toDto(saved).withoutPassword();
     }
 
     @Override
@@ -86,6 +101,7 @@ public class UserServiceImpl implements UserService {
 
         User entity = userMapper.toEntity(userDTO);
         entity.setId(id);
+        entity.setPassword(passwordEncoder.encode(userDTO.getPassword()));
         if (existing.getUserData() != null && entity.getUserData() != null) {
             entity.getUserData().setId(existing.getUserData().getId());
         }
@@ -93,7 +109,7 @@ public class UserServiceImpl implements UserService {
             entity.setRoles(resolveRoles(entity.getRoles()));
         }
         User updated = userRepository.save(entity);
-        return userMapper.toDto(updated);
+        return userMapper.toDto(updated).withoutPassword();
     }
 
     private Set<Role> resolveRoles(Set<Role> roles) {

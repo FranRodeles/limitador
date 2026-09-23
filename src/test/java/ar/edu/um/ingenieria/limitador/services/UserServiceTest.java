@@ -3,6 +3,7 @@ package ar.edu.um.ingenieria.limitador.services;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import ar.edu.um.ingenieria.limitador.domain.User;
 import ar.edu.um.ingenieria.limitador.mapper.UserMapper;
@@ -33,6 +35,9 @@ class UserServiceTest {
 
     @Mock
     private UserMapper userMapper;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -80,27 +85,31 @@ class UserServiceTest {
     }
 
     @Test
-    void shouldSaveUser() {
-        var user = createUser(null, "newuser", "new@example.com", "789", true);
-        var saved = createUser(1L, "newuser", "new@example.com", "789", true);
+    void shouldSaveUserWithEncryptedPassword() {
+        var user = createUser(null, "newuser", "new@example.com", "plainPassword", true);
+        var saved = createUser(1L, "newuser", "new@example.com", "encodedPassword", true);
+        when(passwordEncoder.encode("plainPassword")).thenReturn("$2a$10$encodedHash");
         when(userRepository.save(any(User.class))).thenReturn(saved);
 
         User result = userService.save(user);
 
         assertThat(result.getId()).isEqualTo(1L);
         assertThat(result.getUsername()).isEqualTo("newuser");
+        verify(passwordEncoder).encode("plainPassword");
     }
 
     @Test
-    void shouldUpdateExistingUser() {
-        var existing = createUser(1L, "old", "old@example.com", "123", true);
-        var updated = createUser(1L, "new", "new@example.com", "456", false);
+    void shouldUpdateExistingUserWithEncryptedPassword() {
+        var existing = createUser(1L, "old", "old@example.com", "oldPassword", true);
+        var updated = createUser(1L, "new", "new@example.com", "newPassword", false);
         when(userRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(passwordEncoder.encode("newPassword")).thenReturn("$2a$10$encodedHash");
         when(userRepository.save(any(User.class))).thenReturn(updated);
 
         User result = userService.update(1L, updated);
 
         assertThat(result.getUsername()).isEqualTo("new");
+        verify(passwordEncoder).encode("newPassword");
         verify(userRepository, times(1)).save(updated);
     }
 

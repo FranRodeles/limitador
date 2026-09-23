@@ -32,6 +32,7 @@ public interface UserMapper {
     @Mapping(target = "userData.id", ignore = true)
     @Mapping(target = "userData.user", ignore = true)
     @Mapping(target = "roles", source = "roles", qualifiedByName = "stringsToRoles")
+    @Mapping(target = "password", source = "password")
     User toEntity(UserDTO dto);
 
     List<UserDTO> toDtoList(List<User> users);

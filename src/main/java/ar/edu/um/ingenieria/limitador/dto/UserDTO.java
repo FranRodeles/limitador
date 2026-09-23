@@ -22,4 +22,9 @@ public class UserDTO {
     private String lastName;
     private String phoneNumber;
     private String address;
+
+    public UserDTO withoutPassword() {
+        this.password = null;
+        return this;
+    }
 }

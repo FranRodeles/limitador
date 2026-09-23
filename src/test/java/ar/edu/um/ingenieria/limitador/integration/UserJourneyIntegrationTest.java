@@ -26,7 +26,7 @@ import tools.jackson.databind.ObjectMapper;
 import ar.edu.um.ingenieria.limitador.dto.UserDTO;
 
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
 @Transactional
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class UserJourneyIntegrationTest {

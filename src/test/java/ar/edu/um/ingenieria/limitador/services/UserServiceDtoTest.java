@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import ar.edu.um.ingenieria.limitador.domain.User;
 import ar.edu.um.ingenieria.limitador.dto.UserDTO;
@@ -36,6 +37,9 @@ class UserServiceDtoTest {
 
     @Mock
     private UserMapper userMapper;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -110,17 +114,17 @@ class UserServiceDtoTest {
             .build();
 
         User entityToSave = createUser(null, "newUser", "new@test.com", "secret", true);
-        User savedEntity = createUser(10L, "newUser", "new@test.com", "secret", true);
+        User savedEntity = createUser(10L, "newUser", "new@test.com", "encodedSecret", true);
         UserDTO expectedDto = UserDTO.builder()
             .id(10L)
             .username("newUser")
             .email("new@test.com")
-            .password("secret")
             .activated(true)
             .roles(Set.of("ROLE_USER"))
             .build();
 
         when(userMapper.toEntity(inputDto)).thenReturn(entityToSave);
+        when(passwordEncoder.encode("secret")).thenReturn("$2a$10$encodedHash");
         when(userRepository.save(entityToSave)).thenReturn(savedEntity);
         when(userMapper.toDto(savedEntity)).thenReturn(expectedDto);
 
@@ -129,6 +133,7 @@ class UserServiceDtoTest {
         assertThat(result.getId()).isEqualTo(10L);
         assertThat(result.getUsername()).isEqualTo("newUser");
         verify(userMapper, times(1)).toEntity(inputDto);
+        verify(passwordEncoder).encode("secret");
         verify(userRepository, times(1)).save(entityToSave);
         verify(userMapper, times(1)).toDto(savedEntity);
     }
@@ -145,11 +150,12 @@ class UserServiceDtoTest {
 
         User existingUser = createUser(5L, "oldUser", "old@test.com", "oldPass", true);
         User mappedUser = createUser(null, "updatedUser", "updated@test.com", "newPass", false);
-        User savedUser = createUser(5L, "updatedUser", "updated@test.com", "newPass", false);
+        User savedUser = createUser(5L, "updatedUser", "updated@test.com", "encodedNewPass", false);
         UserDTO resultDto = UserDTO.builder().id(5L).username("updatedUser").email("updated@test.com").build();
 
         when(userRepository.findById(5L)).thenReturn(Optional.of(existingUser));
         when(userMapper.toEntity(updateDto)).thenReturn(mappedUser);
+        when(passwordEncoder.encode("newPass")).thenReturn("$2a$10$encodedHash");
         when(userRepository.save(mappedUser)).thenReturn(savedUser);
         when(userMapper.toDto(savedUser)).thenReturn(resultDto);
 
@@ -158,6 +164,7 @@ class UserServiceDtoTest {
         assertThat(result.getId()).isEqualTo(5L);
         assertThat(result.getUsername()).isEqualTo("updatedUser");
         assertThat(mappedUser.getId()).isEqualTo(5L);
+        verify(passwordEncoder).encode("newPass");
         verify(userRepository, times(1)).save(mappedUser);
     }
 
