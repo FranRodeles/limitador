@@ -94,6 +94,16 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public Optional<UserDTO> findDTOByUsernameAndEmail(String username, String email) {
+        if (username == null || username.isBlank() || email == null || email.isBlank()) {
+            return Optional.empty();
+        }
+        return userRepository.findByUsernameAndEmail(username.trim(), email.trim())
+            .map(userMapper::toDto)
+            .map(UserDTO::withoutPassword);
+    }
+
+    @Override
     public UserDTO saveDTO(UserDTO userDTO) {
         User entity = userMapper.toEntity(userDTO);
         entity.setPassword(passwordEncoder.encode(userDTO.getPassword()));

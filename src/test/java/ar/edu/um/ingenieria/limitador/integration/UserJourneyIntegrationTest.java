@@ -106,7 +106,17 @@ class UserJourneyIntegrationTest {
             .andExpect(jsonPath("$.phoneNumber", is("+1-555-CRAFTSMAN")))
             .andExpect(jsonPath("$.address", is("Agile Software Boulevard 100")));
 
-        // Step 4: Verify user in collection list
+        // Step 4: Search user by username and email
+        mockMvc.perform(get("/api/users/search")
+                .param("username", "robert_c_martin")
+                .param("email", "unclebob@cleancoders.com"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id", is(userId.intValue())))
+            .andExpect(jsonPath("$.username", is("robert_c_martin")))
+            .andExpect(jsonPath("$.email", is("unclebob@cleancoders.com")))
+            .andExpect(jsonPath("$.firstName", is("Robert C.")));
+
+        // Step 5: Verify user in collection list
         var listResponse = mockMvc.perform(get("/api/users"))
             .andExpect(status().isOk())
             .andReturn();

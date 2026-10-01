@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import ar.edu.um.ingenieria.limitador.dto.UserDTO;
@@ -31,6 +32,18 @@ public class UserController {
     @GetMapping
     public ResponseEntity<Page<UserDTO>> findAll(@PageableDefault(size = 20) Pageable pageable) {
         return ResponseEntity.ok(userService.findAllDTOs(pageable));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<UserDTO> searchByUsernameAndEmail(
+            @RequestParam String username,
+            @RequestParam String email) {
+        if (username.isBlank() || email.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        return userService.findDTOByUsernameAndEmail(username, email)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/{id}")

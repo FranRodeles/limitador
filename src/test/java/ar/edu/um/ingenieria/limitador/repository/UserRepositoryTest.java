@@ -147,4 +147,36 @@ class UserRepositoryTest {
         assertThat(found.get().getUserData()).isNotNull();
         assertThat(found.get().getUserData().getFirstName()).isEqualTo("Juan");
     }
+
+    @Test
+    void shouldFindUserByUsernameAndEmail() {
+        var user = new User();
+        user.setUsername("searchUser");
+        user.setEmail("search@example.com");
+        user.setPassword("secret123");
+        user.setActivated(true);
+        userRepository.save(user);
+
+        Optional<User> found = userRepository.findByUsernameAndEmail("searchUser", "search@example.com");
+
+        assertThat(found).isPresent();
+        assertThat(found.get().getUsername()).isEqualTo("searchUser");
+        assertThat(found.get().getEmail()).isEqualTo("search@example.com");
+    }
+
+    @Test
+    void shouldReturnEmptyWhenUsernameOrEmailDoesNotMatch() {
+        var user = new User();
+        user.setUsername("existingUser");
+        user.setEmail("existing@example.com");
+        user.setPassword("secret123");
+        user.setActivated(true);
+        userRepository.save(user);
+
+        Optional<User> wrongEmail = userRepository.findByUsernameAndEmail("existingUser", "wrong@example.com");
+        Optional<User> wrongUser = userRepository.findByUsernameAndEmail("wrongUser", "existing@example.com");
+
+        assertThat(wrongEmail).isEmpty();
+        assertThat(wrongUser).isEmpty();
+    }
 }

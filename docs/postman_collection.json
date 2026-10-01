@@ -21,6 +21,14 @@
     {
       "key": "userId",
       "value": "1"
+    },
+    {
+      "key": "searchUsername",
+      "value": "juan.perez"
+    },
+    {
+      "key": "searchEmail",
+      "value": "juan.perez@example.com"
     }
   ],
   "item": [
@@ -218,6 +226,28 @@
               "raw": "{{baseUrl}}/api/users/{{userId}}",
               "host": ["{{baseUrl}}"],
               "path": ["api", "users", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "Buscar usuario por username y email",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/search?username={{searchUsername}}&email={{searchEmail}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "search"],
+              "query": [
+                {
+                  "key": "username",
+                  "value": "{{searchUsername}}"
+                },
+                {
+                  "key": "email",
+                  "value": "{{searchEmail}}"
+                }
+              ]
             }
           }
         },

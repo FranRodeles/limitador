@@ -116,4 +116,33 @@ class UserControllerTest {
         mockMvc.perform(delete("/api/users/1"))
             .andExpect(status().isNoContent());
     }
+
+    @Test
+    void shouldReturnUserByUsernameAndEmail() throws Exception {
+        var user = createUserDTO(1L, "jdoe", "jdoe@example.com");
+        when(userService.findDTOByUsernameAndEmail("jdoe", "jdoe@example.com")).thenReturn(Optional.of(user));
+
+        mockMvc.perform(get("/api/users/search?username=jdoe&email=jdoe@example.com"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id", is(1)))
+            .andExpect(jsonPath("$.username", is("jdoe")))
+            .andExpect(jsonPath("$.email", is("jdoe@example.com")));
+    }
+
+    @Test
+    void shouldReturn404WhenUserNotFoundByUsernameAndEmail() throws Exception {
+        when(userService.findDTOByUsernameAndEmail("unknown", "unknown@example.com")).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/users/search?username=unknown&email=unknown@example.com"))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void shouldReturn400WhenSearchParametersAreBlank() throws Exception {
+        mockMvc.perform(get("/api/users/search?username=  &email=jdoe@example.com"))
+            .andExpect(status().isBadRequest());
+
+        mockMvc.perform(get("/api/users/search?username=jdoe&email=  "))
+            .andExpect(status().isBadRequest());
+    }
 }
