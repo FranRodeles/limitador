@@ -18,6 +18,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import ar.edu.um.ingenieria.limitador.domain.User;
@@ -72,6 +76,34 @@ class UserServiceDtoTest {
         assertThat(result.get(1).getUsername()).isEqualTo("user2");
         verify(userRepository, times(1)).findAll();
         verify(userMapper, times(1)).toDtoList(any());
+    }
+
+    @Test
+    @DisplayName("Should return paged users as UserDTOs without passwords")
+    void shouldReturnPagedUsersAsDTOs() {
+        User u1 = createUser(1L, "user1", "u1@test.com", "pass", true);
+        User u2 = createUser(2L, "user2", "u2@test.com", "pass", true);
+        UserDTO dto1 = UserDTO.builder().id(1L).username("user1").email("u1@test.com").password("secret").build();
+        UserDTO dto2 = UserDTO.builder().id(2L).username("user2").email("u2@test.com").password("secret").build();
+
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<User> userPage = new PageImpl<>(List.of(u1, u2), pageable, 2);
+
+        when(userRepository.findAll(pageable)).thenReturn(userPage);
+        when(userMapper.toDto(u1)).thenReturn(dto1);
+        when(userMapper.toDto(u2)).thenReturn(dto2);
+
+        Page<UserDTO> result = userService.findAllDTOs(pageable);
+
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getTotalElements()).isEqualTo(2);
+        assertThat(result.getContent().get(0).getUsername()).isEqualTo("user1");
+        assertThat(result.getContent().get(0).getPassword()).isNull();
+        assertThat(result.getContent().get(1).getUsername()).isEqualTo("user2");
+        assertThat(result.getContent().get(1).getPassword()).isNull();
+        verify(userRepository, times(1)).findAll(pageable);
+        verify(userMapper, times(1)).toDto(u1);
+        verify(userMapper, times(1)).toDto(u2);
     }
 
     @Test

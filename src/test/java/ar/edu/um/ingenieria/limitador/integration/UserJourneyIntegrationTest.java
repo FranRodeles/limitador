@@ -53,7 +53,7 @@ class UserJourneyIntegrationTest {
             .roles(Set.of("ROLE_AUTHOR", "ROLE_DEVELOPER"))
             .build();
 
-        var registrationResponse = mockMvc.perform(post("/api/users/dto")
+        var registrationResponse = mockMvc.perform(post("/api/users")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(registrationDto)))
             .andExpect(status().isCreated())
@@ -74,7 +74,7 @@ class UserJourneyIntegrationTest {
         assertThat(userId).isNotNull();
 
         // Step 2: Retrieve Profile via UserDTO
-        mockMvc.perform(get("/api/users/dto/" + userId))
+        mockMvc.perform(get("/api/users/" + userId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id", is(userId.intValue())))
             .andExpect(jsonPath("$.username", is("robert_martin")))
@@ -94,7 +94,7 @@ class UserJourneyIntegrationTest {
             .roles(Set.of("ROLE_AUTHOR", "ROLE_SPEAKER"))
             .build();
 
-        mockMvc.perform(put("/api/users/dto/" + userId)
+        mockMvc.perform(put("/api/users/" + userId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(updateDto)))
             .andExpect(status().isOk())
@@ -107,7 +107,7 @@ class UserJourneyIntegrationTest {
             .andExpect(jsonPath("$.address", is("Agile Software Boulevard 100")));
 
         // Step 4: Verify user in collection list
-        var listResponse = mockMvc.perform(get("/api/users/dto"))
+        var listResponse = mockMvc.perform(get("/api/users"))
             .andExpect(status().isOk())
             .andReturn();
 
@@ -120,7 +120,7 @@ class UserJourneyIntegrationTest {
             .andExpect(status().isNoContent());
 
         // Step 6: Verify user is deleted (404 Not Found)
-        mockMvc.perform(get("/api/users/dto/" + userId))
+        mockMvc.perform(get("/api/users/" + userId))
             .andExpect(status().isNotFound());
     }
 }

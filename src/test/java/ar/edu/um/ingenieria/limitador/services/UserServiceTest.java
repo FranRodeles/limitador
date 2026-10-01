@@ -17,6 +17,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import ar.edu.um.ingenieria.limitador.domain.User;
@@ -62,6 +66,21 @@ class UserServiceTest {
 
         assertThat(users).hasSize(2);
         verify(userRepository, times(1)).findAll();
+    }
+
+    @Test
+    void shouldReturnPagedUsers() {
+        var u1 = createUser(1L, "jdoe", "jdoe@example.com", "123", true);
+        var u2 = createUser(2L, "jane", "jane@example.com", "456", false);
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<User> page = new PageImpl<>(List.of(u1, u2), pageable, 2);
+        when(userRepository.findAll(pageable)).thenReturn(page);
+
+        Page<User> result = userService.findAll(pageable);
+
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getTotalElements()).isEqualTo(2);
+        verify(userRepository, times(1)).findAll(pageable);
     }
 
     @Test

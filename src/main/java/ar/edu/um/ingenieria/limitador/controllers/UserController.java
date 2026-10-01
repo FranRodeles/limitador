@@ -1,7 +1,9 @@
 package ar.edu.um.ingenieria.limitador.controllers;
 
-import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -13,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import ar.edu.um.ingenieria.limitador.domain.User;
 import ar.edu.um.ingenieria.limitador.dto.UserDTO;
 import ar.edu.um.ingenieria.limitador.services.UserService;
 
@@ -28,26 +29,26 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<List<User>> findAll() {
-        return ResponseEntity.ok(userService.findAll());
+    public ResponseEntity<Page<UserDTO>> findAll(@PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(userService.findAllDTOs(pageable));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<User> findById(@PathVariable Long id) {
-        return userService.findById(id)
+    public ResponseEntity<UserDTO> findById(@PathVariable Long id) {
+        return userService.findDTOById(id)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<User> save(@RequestBody User user) {
-        User saved = userService.save(user);
+    public ResponseEntity<UserDTO> save(@RequestBody UserDTO userDTO) {
+        UserDTO saved = userService.saveDTO(userDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<User> update(@PathVariable Long id, @RequestBody User user) {
-        User updated = userService.update(id, user);
+    public ResponseEntity<UserDTO> update(@PathVariable Long id, @RequestBody UserDTO userDTO) {
+        UserDTO updated = userService.updateDTO(id, userDTO);
         return ResponseEntity.ok(updated);
     }
 
@@ -55,29 +56,5 @@ public class UserController {
     public ResponseEntity<Void> deleteById(@PathVariable Long id) {
         userService.deleteById(id);
         return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping("/dto")
-    public ResponseEntity<List<UserDTO>> findAllDTOs() {
-        return ResponseEntity.ok(userService.findAllDTOs());
-    }
-
-    @GetMapping("/dto/{id}")
-    public ResponseEntity<UserDTO> findDTOById(@PathVariable Long id) {
-        return userService.findDTOById(id)
-            .map(ResponseEntity::ok)
-            .orElse(ResponseEntity.notFound().build());
-    }
-
-    @PostMapping("/dto")
-    public ResponseEntity<UserDTO> saveDTO(@RequestBody UserDTO userDTO) {
-        UserDTO saved = userService.saveDTO(userDTO);
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
-    }
-
-    @PutMapping("/dto/{id}")
-    public ResponseEntity<UserDTO> updateDTO(@PathVariable Long id, @RequestBody UserDTO userDTO) {
-        UserDTO updated = userService.updateDTO(id, userDTO);
-        return ResponseEntity.ok(updated);
     }
 }

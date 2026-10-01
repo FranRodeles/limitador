@@ -3,6 +3,7 @@ package ar.edu.um.ingenieria.limitador.controllers;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -17,13 +18,17 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import tools.jackson.databind.ObjectMapper;
 
-import ar.edu.um.ingenieria.limitador.domain.User;
+import ar.edu.um.ingenieria.limitador.dto.UserDTO;
 import ar.edu.um.ingenieria.limitador.services.UserService;
 
 @WebMvcTest(UserController.class)
@@ -38,33 +43,34 @@ class UserControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    private User createUser(Long id, String username, String email, String password, Boolean activated) {
-        User user = new User();
-        user.setId(id);
-        user.setUsername(username);
-        user.setEmail(email);
-        user.setPassword(password);
-        user.setActivated(activated);
-        return user;
+    private UserDTO createUserDTO(Long id, String username, String email) {
+        return UserDTO.builder()
+            .id(id)
+            .username(username)
+            .email(email)
+            .activated(true)
+            .build();
     }
 
     @Test
-    void shouldReturnAllUsers() throws Exception {
-        var u1 = createUser(1L, "jdoe", "jdoe@example.com", "123", true);
-        var u2 = createUser(2L, "jane", "jane@example.com", "456", false);
-        when(userService.findAll()).thenReturn(List.of(u1, u2));
+    void shouldReturnPagedUsers() throws Exception {
+        var u1 = createUserDTO(1L, "jdoe", "jdoe@example.com");
+        var u2 = createUserDTO(2L, "jane", "jane@example.com");
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<UserDTO> page = new PageImpl<>(List.of(u1, u2), pageable, 2);
+        when(userService.findAllDTOs(any(Pageable.class))).thenReturn(page);
 
-        mockMvc.perform(get("/api/users"))
+        mockMvc.perform(get("/api/users?page=0&size=20"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$", hasSize(2)))
-            .andExpect(jsonPath("$[0].username", is("jdoe")))
-            .andExpect(jsonPath("$[1].username", is("jane")));
+            .andExpect(jsonPath("$.content", hasSize(2)))
+            .andExpect(jsonPath("$.content[0].username", is("jdoe")))
+            .andExpect(jsonPath("$.content[1].username", is("jane")));
     }
 
     @Test
     void shouldReturnUserById() throws Exception {
-        var user = createUser(1L, "jdoe", "jdoe@example.com", "123", true);
-        when(userService.findById(1L)).thenReturn(Optional.of(user));
+        var user = createUserDTO(1L, "jdoe", "jdoe@example.com");
+        when(userService.findDTOById(1L)).thenReturn(Optional.of(user));
 
         mockMvc.perform(get("/api/users/1"))
             .andExpect(status().isOk())
@@ -73,7 +79,7 @@ class UserControllerTest {
 
     @Test
     void shouldReturn404WhenNotFound() throws Exception {
-        when(userService.findById(99L)).thenReturn(Optional.empty());
+        when(userService.findDTOById(99L)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/users/99"))
             .andExpect(status().isNotFound());
@@ -81,9 +87,9 @@ class UserControllerTest {
 
     @Test
     void shouldCreateUser() throws Exception {
-        var user = createUser(null, "newuser", "new@example.com", "789", true);
-        var saved = createUser(1L, "newuser", "new@example.com", "789", true);
-        when(userService.save(any(User.class))).thenReturn(saved);
+        var user = createUserDTO(null, "newuser", "new@example.com");
+        var saved = createUserDTO(1L, "newuser", "new@example.com");
+        when(userService.saveDTO(any(UserDTO.class))).thenReturn(saved);
 
         mockMvc.perform(post("/api/users")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -95,8 +101,8 @@ class UserControllerTest {
 
     @Test
     void shouldUpdateUser() throws Exception {
-        var updated = createUser(1L, "updated", "updated@example.com", "456", false);
-        when(userService.update(any(Long.class), any(User.class))).thenReturn(updated);
+        var updated = createUserDTO(1L, "updated", "updated@example.com");
+        when(userService.updateDTO(eq(1L), any(UserDTO.class))).thenReturn(updated);
 
         mockMvc.perform(put("/api/users/1")
                 .contentType(MediaType.APPLICATION_JSON)

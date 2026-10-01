@@ -8,6 +8,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 import ar.edu.um.ingenieria.limitador.domain.Role;
 import ar.edu.um.ingenieria.limitador.domain.User;
@@ -55,6 +57,38 @@ class UserRepositoryTest {
 
         List<User> users = userRepository.findAll();
         assertThat(users).hasSize(2);
+    }
+
+    @Test
+    void shouldFindUsersWithPagination() {
+        var user1 = new User();
+        user1.setUsername("pagedUser1");
+        user1.setEmail("paged1@example.com");
+        user1.setPassword("password123");
+        user1.setActivated(true);
+
+        var user2 = new User();
+        user2.setUsername("pagedUser2");
+        user2.setEmail("paged2@example.com");
+        user2.setPassword("password123");
+        user2.setActivated(true);
+
+        var user3 = new User();
+        user3.setUsername("pagedUser3");
+        user3.setEmail("paged3@example.com");
+        user3.setPassword("password123");
+        user3.setActivated(true);
+
+        userRepository.save(user1);
+        userRepository.save(user2);
+        userRepository.save(user3);
+
+        Page<User> firstPage = userRepository.findAll(PageRequest.of(0, 2));
+
+        assertThat(firstPage.getContent()).hasSize(2);
+        assertThat(firstPage.getTotalElements()).isGreaterThanOrEqualTo(3);
+        assertThat(firstPage.getTotalPages()).isGreaterThanOrEqualTo(2);
+        assertThat(firstPage.getNumber()).isZero();
     }
 
     @Test

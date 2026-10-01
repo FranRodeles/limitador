@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -34,6 +36,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<User> findAll() {
         return userRepository.findAll();
+    }
+
+    @Override
+    public Page<User> findAll(Pageable pageable) {
+        return userRepository.findAll(pageable);
     }
 
     @Override
@@ -70,6 +77,13 @@ public class UserServiceImpl implements UserService {
         return userMapper.toDtoList(userRepository.findAll()).stream()
             .map(UserDTO::withoutPassword)
             .toList();
+    }
+
+    @Override
+    public Page<UserDTO> findAllDTOs(Pageable pageable) {
+        return userRepository.findAll(pageable)
+            .map(userMapper::toDto)
+            .map(UserDTO::withoutPassword);
     }
 
     @Override
