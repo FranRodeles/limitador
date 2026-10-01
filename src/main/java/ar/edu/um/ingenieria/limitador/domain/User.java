@@ -17,12 +17,14 @@ import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 
 @Entity
 @Table(name = "users")
 @Data
+@EqualsAndHashCode(exclude = {"roles", "userData"})
 @NoArgsConstructor
 public class User {
 
