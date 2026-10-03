@@ -1,6 +1,7 @@
 package ar.edu.um.ingenieria.limitador.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -116,7 +117,7 @@ class UserJourneyIntegrationTest {
             .andExpect(jsonPath("$.email", is("unclebob@cleancoders.com")))
             .andExpect(jsonPath("$.firstName", is("Robert C.")));
 
-        // Step 5: Verify user in collection list
+        // Step 5: Verify user in collection list with default pagination
         var listResponse = mockMvc.perform(get("/api/users"))
             .andExpect(status().isOk())
             .andReturn();
@@ -125,11 +126,18 @@ class UserJourneyIntegrationTest {
         assertThat(listContent).contains("robert_c_martin");
         assertThat(listContent).contains("unclebob@cleancoders.com");
 
-        // Step 5: Delete user
+        // Step 5b: Verify pagination with specific page parameter (page=20)
+        mockMvc.perform(get("/api/users")
+                .param("page", "20")
+                .param("size", "20"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content", hasSize(0)));
+
+        // Step 6: Delete user
         mockMvc.perform(delete("/api/users/" + userId))
             .andExpect(status().isNoContent());
 
-        // Step 6: Verify user is deleted (404 Not Found)
+        // Step 7: Verify user is deleted (404 Not Found)
         mockMvc.perform(get("/api/users/" + userId))
             .andExpect(status().isNotFound());
     }

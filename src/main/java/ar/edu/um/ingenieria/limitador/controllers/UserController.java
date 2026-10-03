@@ -30,7 +30,8 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<UserDTO>> findAll(@PageableDefault(size = 20) Pageable pageable) {
+    public ResponseEntity<Page<UserDTO>> findAll(
+            @PageableDefault(page = 0, size = 20) Pageable pageable) {
         return ResponseEntity.ok(userService.findAllDTOs(pageable));
     }
 

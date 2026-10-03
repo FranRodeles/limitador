@@ -29,6 +29,14 @@
     {
       "key": "searchEmail",
       "value": "juan.perez@example.com"
+    },
+    {
+      "key": "page",
+      "value": "0"
+    },
+    {
+      "key": "size",
+      "value": "20"
     }
   ],
   "item": [
@@ -211,9 +219,45 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/users",
+              "raw": "{{baseUrl}}/api/users?page={{page}}&size={{size}}",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "users"]
+              "path": ["api", "users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "{{page}}",
+                  "description": "Número de página (base 0: 0 para primera página, 20 para página 21)"
+                },
+                {
+                  "key": "size",
+                  "value": "{{size}}",
+                  "description": "Cantidad de usuarios por página (por defecto 20)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar usuarios - Página 20",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users?page=20&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "20",
+                  "description": "Página 20 (base 0)"
+                },
+                {
+                  "key": "size",
+                  "value": "20",
+                  "description": "Cantidad de usuarios por página"
+                }
+              ]
             }
           }
         },
