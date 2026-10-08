@@ -296,6 +296,45 @@
           }
         },
         {
+          "name": "Registrar usuario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.id) pm.collectionVariables.set('userId', body.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"juan.perez\",\n  \"email\": \"juan.perez@example.com\",\n  \"password\": \"secret123\",\n  \"firstName\": \"Juan\",\n  \"lastName\": \"Perez\",\n  \"address\": \"Calle Falsa 123\",\n  \"phoneNumber\": \"+54 261 1234567\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "register"
+              ]
+            }
+          }
+        },
+        {
           "name": "Crear usuario",
           "event": [
             {

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import ar.edu.um.ingenieria.limitador.domain.Role;
 import ar.edu.um.ingenieria.limitador.domain.User;
 import ar.edu.um.ingenieria.limitador.dto.UserDTO;
+import ar.edu.um.ingenieria.limitador.dto.UserRegisterDTO;
 import ar.edu.um.ingenieria.limitador.mapper.UserMapper;
 import ar.edu.um.ingenieria.limitador.repository.RoleRepository;
 import ar.edu.um.ingenieria.limitador.repository.UserRepository;
@@ -134,6 +135,25 @@ public class UserServiceImpl implements UserService {
         }
         User updated = userRepository.save(entity);
         return userMapper.toDto(updated).withoutPassword();
+    }
+
+    @Override
+    public UserDTO register(UserRegisterDTO registerDTO) {
+        if (registerDTO == null) {
+            throw new IllegalArgumentException("Registration data cannot be null");
+        }
+
+        User entity = userMapper.toEntity(registerDTO);
+        entity.setActivated(false);
+        entity.setPassword(passwordEncoder.encode(registerDTO.getPassword()));
+
+        if (entity.getUserData() != null) {
+            entity.getUserData().setId(null);
+            entity.getUserData().setUser(entity);
+        }
+
+        User saved = userRepository.save(entity);
+        return userMapper.toDto(saved).withoutPassword();
     }
 
     private Set<Role> resolveRoles(Set<Role> roles) {

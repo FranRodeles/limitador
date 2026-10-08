@@ -16,7 +16,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.validation.Valid;
+
 import ar.edu.um.ingenieria.limitador.dto.UserDTO;
+import ar.edu.um.ingenieria.limitador.dto.UserRegisterDTO;
 import ar.edu.um.ingenieria.limitador.services.UserService;
 
 @RestController
@@ -58,6 +61,12 @@ public class UserController {
     public ResponseEntity<UserDTO> save(@RequestBody UserDTO userDTO) {
         UserDTO saved = userService.saveDTO(userDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<UserDTO> register(@Valid @RequestBody UserRegisterDTO registerDTO) {
+        UserDTO registered = userService.register(registerDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(registered);
     }
 
     @PutMapping("/{id}")

@@ -25,7 +25,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import ar.edu.um.ingenieria.limitador.domain.User;
+import ar.edu.um.ingenieria.limitador.domain.UserData;
 import ar.edu.um.ingenieria.limitador.dto.UserDTO;
+import ar.edu.um.ingenieria.limitador.dto.UserRegisterDTO;
 import ar.edu.um.ingenieria.limitador.mapper.UserMapper;
 import ar.edu.um.ingenieria.limitador.repository.RoleRepository;
 import ar.edu.um.ingenieria.limitador.repository.UserRepository;
@@ -257,5 +259,71 @@ class UserServiceDtoTest {
         assertThat(userService.findDTOByUsernameAndEmail("  ", "email@test.com")).isEmpty();
         assertThat(userService.findDTOByUsernameAndEmail("user", "  ")).isEmpty();
         verify(userRepository, never()).findByUsernameAndEmail(any(), any());
+    }
+
+    @Test
+    @DisplayName("Should register new user with activated false and encrypted password")
+    void shouldRegisterUserWithActivatedFalseAndEncryptedPassword() {
+        UserRegisterDTO registerDto = UserRegisterDTO.builder()
+            .username("johndoe")
+            .email("johndoe@example.com")
+            .password("rawPassword123")
+            .firstName("John")
+            .lastName("Doe")
+            .address("742 Evergreen Terrace")
+            .phoneNumber("555-1234")
+            .build();
+
+        UserData userData = new UserData();
+        userData.setFirstName("John");
+        userData.setLastName("Doe");
+        userData.setAddress("742 Evergreen Terrace");
+        userData.setPhoneNumber("555-1234");
+
+        User entityToSave = createUser(null, "johndoe", "johndoe@example.com", "rawPassword123", false);
+        entityToSave.setUserData(userData);
+
+        User savedEntity = createUser(100L, "johndoe", "johndoe@example.com", "$2a$10$hashedPassword", false);
+        savedEntity.setUserData(userData);
+
+        UserDTO expectedDto = UserDTO.builder()
+            .id(100L)
+            .username("johndoe")
+            .email("johndoe@example.com")
+            .activated(false)
+            .firstName("John")
+            .lastName("Doe")
+            .address("742 Evergreen Terrace")
+            .phoneNumber("555-1234")
+            .build();
+
+        when(userMapper.toEntity(registerDto)).thenReturn(entityToSave);
+        when(passwordEncoder.encode("rawPassword123")).thenReturn("$2a$10$hashedPassword");
+        when(userRepository.save(entityToSave)).thenReturn(savedEntity);
+        when(userMapper.toDto(savedEntity)).thenReturn(expectedDto);
+
+        UserDTO result = userService.register(registerDto);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(100L);
+        assertThat(result.getUsername()).isEqualTo("johndoe");
+        assertThat(result.getEmail()).isEqualTo("johndoe@example.com");
+        assertThat(result.getActivated()).isFalse();
+        assertThat(result.getPassword()).isNull();
+        assertThat(result.getFirstName()).isEqualTo("John");
+        assertThat(result.getLastName()).isEqualTo("Doe");
+        assertThat(result.getAddress()).isEqualTo("742 Evergreen Terrace");
+        assertThat(result.getPhoneNumber()).isEqualTo("555-1234");
+
+        verify(passwordEncoder).encode("rawPassword123");
+        verify(userRepository).save(entityToSave);
+        assertThat(entityToSave.getActivated()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when register payload is null")
+    void shouldThrowExceptionWhenRegisterPayloadIsNull() {
+        assertThatThrownBy(() -> userService.register(null))
+            .isInstanceOf(IllegalArgumentException.class);
     }
 }

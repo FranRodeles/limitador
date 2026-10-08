@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 
 import ar.edu.um.ingenieria.limitador.domain.User;
 import ar.edu.um.ingenieria.limitador.dto.UserDTO;
+import ar.edu.um.ingenieria.limitador.dto.UserRegisterDTO;
 
 public interface UserService {
     List<User> findAll();
@@ -23,4 +24,5 @@ public interface UserService {
     Optional<UserDTO> findDTOByUsernameAndEmail(String username, String email);
     UserDTO saveDTO(UserDTO userDTO);
     UserDTO updateDTO(Long id, UserDTO userDTO);
+    UserDTO register(UserRegisterDTO registerDTO);
 }

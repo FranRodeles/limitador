@@ -34,6 +34,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
 import ar.edu.um.ingenieria.limitador.dto.UserDTO;
+import ar.edu.um.ingenieria.limitador.dto.UserRegisterDTO;
 import ar.edu.um.ingenieria.limitador.services.UserService;
 
 @WebMvcTest(UserController.class)
@@ -243,6 +244,83 @@ class UserControllerTest {
             .andExpect(status().isBadRequest());
 
         mockMvc.perform(get("/api/users/search?username=jdoe&email=  "))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("POST /api/users/register should register user and return 201 Created with activated false")
+    void shouldRegisterUserSuccessfully() throws Exception {
+        UserRegisterDTO registerDto = UserRegisterDTO.builder()
+            .username("newregistrant")
+            .email("register@example.com")
+            .password("secret123")
+            .firstName("Grace")
+            .lastName("Hopper")
+            .address("Compiler Way 1")
+            .phoneNumber("+1-555-GRACE")
+            .build();
+
+        UserDTO responseDto = UserDTO.builder()
+            .id(42L)
+            .username("newregistrant")
+            .email("register@example.com")
+            .activated(false)
+            .firstName("Grace")
+            .lastName("Hopper")
+            .address("Compiler Way 1")
+            .phoneNumber("+1-555-GRACE")
+            .build();
+
+        when(userService.register(any(UserRegisterDTO.class))).thenReturn(responseDto);
+
+        mockMvc.perform(post("/api/users/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(registerDto)))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.id", is(42)))
+            .andExpect(jsonPath("$.username", is("newregistrant")))
+            .andExpect(jsonPath("$.email", is("register@example.com")))
+            .andExpect(jsonPath("$.activated", is(false)))
+            .andExpect(jsonPath("$.firstName", is("Grace")))
+            .andExpect(jsonPath("$.lastName", is("Hopper")))
+            .andExpect(jsonPath("$.address", is("Compiler Way 1")))
+            .andExpect(jsonPath("$.phoneNumber", is("+1-555-GRACE")))
+            .andExpect(jsonPath("$.password").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("POST /api/users/register should return 400 Bad Request when validation fails")
+    void shouldReturnBadRequestWhenRegistrationDataIsInvalid() throws Exception {
+        UserRegisterDTO invalidDto = UserRegisterDTO.builder()
+            .username("")
+            .email("not-an-email")
+            .password("12")
+            .firstName("")
+            .phoneNumber("")
+            .build();
+
+        mockMvc.perform(post("/api/users/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(invalidDto)))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("POST /api/users/register should return 400 Bad Request when phoneNumber is missing")
+    void shouldReturnBadRequestWhenPhoneNumberIsMissing() throws Exception {
+        UserRegisterDTO dtoWithoutPhone = UserRegisterDTO.builder()
+            .username("validuser")
+            .email("valid@example.com")
+            .password("secret123")
+            .firstName("John")
+            .lastName("Doe")
+            .address("Some Address 123")
+            .phoneNumber(null)
+            .build();
+
+        mockMvc.perform(post("/api/users/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dtoWithoutPhone)))
             .andExpect(status().isBadRequest());
     }
 }

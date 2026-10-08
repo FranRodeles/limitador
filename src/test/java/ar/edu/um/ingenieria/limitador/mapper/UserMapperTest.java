@@ -13,6 +13,7 @@ import ar.edu.um.ingenieria.limitador.domain.Role;
 import ar.edu.um.ingenieria.limitador.domain.User;
 import ar.edu.um.ingenieria.limitador.domain.UserData;
 import ar.edu.um.ingenieria.limitador.dto.UserDTO;
+import ar.edu.um.ingenieria.limitador.dto.UserRegisterDTO;
 
 class UserMapperTest {
 
@@ -135,5 +136,38 @@ class UserMapperTest {
         assertThat(dtoList).hasSize(2);
         assertThat(dtoList.get(0).getUsername()).isEqualTo("u1");
         assertThat(dtoList.get(1).getUsername()).isEqualTo("u2");
+    }
+
+    @Test
+    @DisplayName("Should map UserRegisterDTO to User entity with activated false and nested UserData")
+    void shouldMapUserRegisterDTOToUserWithActivatedFalse() {
+        UserRegisterDTO registerDto = UserRegisterDTO.builder()
+            .username("newuser")
+            .email("newuser@example.com")
+            .password("secret123")
+            .firstName("Alan")
+            .lastName("Turing")
+            .address("Bletchley Park")
+            .phoneNumber("+44 1908 640134")
+            .build();
+
+        User user = userMapper.toEntity(registerDto);
+
+        assertThat(user).isNotNull();
+        assertThat(user.getUsername()).isEqualTo("newuser");
+        assertThat(user.getEmail()).isEqualTo("newuser@example.com");
+        assertThat(user.getPassword()).isEqualTo("secret123");
+        assertThat(user.getActivated()).isFalse();
+        assertThat(user.getUserData()).isNotNull();
+        assertThat(user.getUserData().getFirstName()).isEqualTo("Alan");
+        assertThat(user.getUserData().getLastName()).isEqualTo("Turing");
+        assertThat(user.getUserData().getAddress()).isEqualTo("Bletchley Park");
+        assertThat(user.getUserData().getPhoneNumber()).isEqualTo("+44 1908 640134");
+    }
+
+    @Test
+    @DisplayName("Should return null when source UserRegisterDTO is null")
+    void shouldReturnNullWhenUserRegisterDTOIsNull() {
+        assertThat(userMapper.toEntity((UserRegisterDTO) null)).isNull();
     }
 }

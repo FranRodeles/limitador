@@ -14,6 +14,7 @@ import ar.edu.um.ingenieria.limitador.domain.Role;
 import ar.edu.um.ingenieria.limitador.domain.User;
 import ar.edu.um.ingenieria.limitador.domain.UserData;
 import ar.edu.um.ingenieria.limitador.dto.UserDTO;
+import ar.edu.um.ingenieria.limitador.dto.UserRegisterDTO;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface UserMapper {
@@ -34,6 +35,18 @@ public interface UserMapper {
     @Mapping(target = "roles", source = "roles", qualifiedByName = "stringsToRoles")
     @Mapping(target = "password", source = "password")
     User toEntity(UserDTO dto);
+
+    @Mapping(target = "userData.firstName", source = "firstName")
+    @Mapping(target = "userData.lastName", source = "lastName")
+    @Mapping(target = "userData.address", source = "address")
+    @Mapping(target = "userData.phoneNumber", source = "phoneNumber")
+    @Mapping(target = "userData.id", ignore = true)
+    @Mapping(target = "userData.user", ignore = true)
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "roles", ignore = true)
+    @Mapping(target = "activated", constant = "false")
+    @Mapping(target = "password", source = "password")
+    User toEntity(UserRegisterDTO dto);
 
     List<UserDTO> toDtoList(List<User> users);
 
