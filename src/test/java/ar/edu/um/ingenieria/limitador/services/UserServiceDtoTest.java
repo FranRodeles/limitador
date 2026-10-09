@@ -28,6 +28,7 @@ import ar.edu.um.ingenieria.limitador.domain.User;
 import ar.edu.um.ingenieria.limitador.domain.UserData;
 import ar.edu.um.ingenieria.limitador.dto.UserDTO;
 import ar.edu.um.ingenieria.limitador.dto.UserRegisterDTO;
+import ar.edu.um.ingenieria.limitador.exception.UserAlreadyExistsException;
 import ar.edu.um.ingenieria.limitador.mapper.UserMapper;
 import ar.edu.um.ingenieria.limitador.repository.RoleRepository;
 import ar.edu.um.ingenieria.limitador.repository.UserRepository;
@@ -226,39 +227,39 @@ class UserServiceDtoTest {
             .password("secretPass")
             .build();
 
-        when(userRepository.findByUsernameAndEmail("searchUser", "search@test.com")).thenReturn(Optional.of(user));
+        when(userRepository.findByUsernameOrEmail("searchUser", "search@test.com")).thenReturn(Optional.of(user));
         when(userMapper.toDto(user)).thenReturn(dtoWithPassword);
 
-        Optional<UserDTO> result = userService.findDTOByUsernameAndEmail("searchUser", "search@test.com");
+        Optional<UserDTO> result = userService.findDTOByUsernameOrEmail("searchUser", "search@test.com");
 
         assertThat(result).isPresent();
         assertThat(result.get().getId()).isEqualTo(1L);
         assertThat(result.get().getUsername()).isEqualTo("searchUser");
         assertThat(result.get().getEmail()).isEqualTo("search@test.com");
         assertThat(result.get().getPassword()).isNull();
-        verify(userRepository, times(1)).findByUsernameAndEmail("searchUser", "search@test.com");
+        verify(userRepository, times(1)).findByUsernameOrEmail("searchUser", "search@test.com");
     }
 
     @Test
     @DisplayName("Should return empty Optional when UserDTO not found by username and email")
     void shouldReturnEmptyWhenUserDTONotFoundByUsernameAndEmail() {
-        when(userRepository.findByUsernameAndEmail("unknown", "unknown@test.com")).thenReturn(Optional.empty());
+        when(userRepository.findByUsernameOrEmail("unknown", "unknown@test.com")).thenReturn(Optional.empty());
 
-        Optional<UserDTO> result = userService.findDTOByUsernameAndEmail("unknown", "unknown@test.com");
+        Optional<UserDTO> result = userService.findDTOByUsernameOrEmail("unknown", "unknown@test.com");
 
         assertThat(result).isEmpty();
-        verify(userRepository, times(1)).findByUsernameAndEmail("unknown", "unknown@test.com");
+        verify(userRepository, times(1)).findByUsernameOrEmail("unknown", "unknown@test.com");
         verify(userMapper, never()).toDto(any());
     }
 
     @Test
     @DisplayName("Should return empty Optional when search parameters are null or blank")
     void shouldReturnEmptyWhenSearchParametersAreBlank() {
-        assertThat(userService.findDTOByUsernameAndEmail(null, "email@test.com")).isEmpty();
-        assertThat(userService.findDTOByUsernameAndEmail("user", null)).isEmpty();
-        assertThat(userService.findDTOByUsernameAndEmail("  ", "email@test.com")).isEmpty();
-        assertThat(userService.findDTOByUsernameAndEmail("user", "  ")).isEmpty();
-        verify(userRepository, never()).findByUsernameAndEmail(any(), any());
+        assertThat(userService.findDTOByUsernameOrEmail(null, "email@test.com")).isEmpty();
+        assertThat(userService.findDTOByUsernameOrEmail("user", null)).isEmpty();
+        assertThat(userService.findDTOByUsernameOrEmail("  ", "email@test.com")).isEmpty();
+        assertThat(userService.findDTOByUsernameOrEmail("user", "  ")).isEmpty();
+        verify(userRepository, never()).findByUsernameOrEmail(any(), any());
     }
 
     @Test

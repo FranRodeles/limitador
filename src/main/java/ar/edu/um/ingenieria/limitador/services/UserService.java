@@ -21,7 +21,7 @@ public interface UserService {
     List<UserDTO> findAllDTOs();
     Page<UserDTO> findAllDTOs(Pageable pageable);
     Optional<UserDTO> findDTOById(Long id);
-    Optional<UserDTO> findDTOByUsernameAndEmail(String username, String email);
+    Optional<UserDTO> findDTOByUsernameOrEmail(String username, String email);
     UserDTO saveDTO(UserDTO userDTO);
     UserDTO updateDTO(Long id, UserDTO userDTO);
     UserDTO register(UserRegisterDTO registerDTO);

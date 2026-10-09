@@ -112,4 +112,84 @@ class UserRegistrationIntegrationTest {
                 .content(objectMapper.writeValueAsString(registrationDto)))
             .andExpect(status().isBadRequest());
     }
+
+    @Test
+    @DisplayName("Integration: Register user with duplicate username should fail with 409 Conflict ProblemDetail")
+    void shouldFailRegistrationWhenUsernameAlreadyExists() throws Exception {
+        UserRegisterDTO firstDto = UserRegisterDTO.builder()
+            .username("duplicate_user")
+            .email("user1@example.com")
+            .password("Password123!")
+            .firstName("First")
+            .phoneNumber("+123456789")
+            .build();
+
+        mockMvc.perform(post("/api/users/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(firstDto)))
+            .andExpect(status().isCreated());
+
+        UserRegisterDTO duplicateUsernameDto = UserRegisterDTO.builder()
+            .username("duplicate_user")
+            .email("user2@example.com")
+            .password("Password123!")
+            .firstName("Second")
+            .phoneNumber("+987654321")
+            .build();
+
+        mockMvc.perform(post("/api/users/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(duplicateUsernameDto)))
+            .andExpect(status().isConflict())
+            .andExpect(result -> {
+                String contentType = result.getResponse().getContentType();
+                assertThat(contentType).containsAnyOf(
+                    MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    MediaType.APPLICATION_JSON_VALUE
+                );
+            })
+            .andExpect(jsonPath("$.status", is(409)))
+            .andExpect(jsonPath("$.title", is("User Already Exists")))
+            .andExpect(jsonPath("$.detail", is("Username 'duplicate_user' is already registered")));
+    }
+
+    @Test
+    @DisplayName("Integration: Register user with duplicate email should fail with 409 Conflict ProblemDetail")
+    void shouldFailRegistrationWhenEmailAlreadyExists() throws Exception {
+        UserRegisterDTO firstDto = UserRegisterDTO.builder()
+            .username("user_one")
+            .email("duplicate@example.com")
+            .password("Password123!")
+            .firstName("First")
+            .phoneNumber("+123456789")
+            .build();
+
+        mockMvc.perform(post("/api/users/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(firstDto)))
+            .andExpect(status().isCreated());
+
+        UserRegisterDTO duplicateEmailDto = UserRegisterDTO.builder()
+            .username("user_two")
+            .email("duplicate@example.com")
+            .password("Password123!")
+            .firstName("Second")
+            .phoneNumber("+987654321")
+            .build();
+
+        mockMvc.perform(post("/api/users/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(duplicateEmailDto)))
+            .andExpect(status().isConflict())
+            .andExpect(result -> {
+                String contentType = result.getResponse().getContentType();
+                assertThat(contentType).containsAnyOf(
+                    MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    MediaType.APPLICATION_JSON_VALUE
+                );
+            })
+            .andExpect(jsonPath("$.status", is(409)))
+            .andExpect(jsonPath("$.title", is("User Already Exists")))
+            .andExpect(jsonPath("$.detail", is("Email 'duplicate@example.com' is already registered")));
+    }
 }

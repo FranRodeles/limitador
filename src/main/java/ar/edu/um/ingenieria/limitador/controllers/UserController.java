@@ -39,13 +39,13 @@ public class UserController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<UserDTO> searchByUsernameAndEmail(
+    public ResponseEntity<UserDTO> searchByUsernameOrEmail(
             @RequestParam String username,
             @RequestParam String email) {
         if (username.isBlank() || email.isBlank()) {
             return ResponseEntity.badRequest().build();
         }
-        return userService.findDTOByUsernameAndEmail(username, email)
+        return userService.findDTOByUsernameOrEmail(username, email)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
     }

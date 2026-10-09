@@ -14,6 +14,7 @@ import ar.edu.um.ingenieria.limitador.domain.Role;
 import ar.edu.um.ingenieria.limitador.domain.User;
 import ar.edu.um.ingenieria.limitador.dto.UserDTO;
 import ar.edu.um.ingenieria.limitador.dto.UserRegisterDTO;
+import ar.edu.um.ingenieria.limitador.exception.UserAlreadyExistsException;
 import ar.edu.um.ingenieria.limitador.mapper.UserMapper;
 import ar.edu.um.ingenieria.limitador.repository.RoleRepository;
 import ar.edu.um.ingenieria.limitador.repository.UserRepository;
@@ -95,11 +96,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Optional<UserDTO> findDTOByUsernameAndEmail(String username, String email) {
+    public Optional<UserDTO> findDTOByUsernameOrEmail(String username, String email) {
         if (username == null || username.isBlank() || email == null || email.isBlank()) {
             return Optional.empty();
         }
-        return userRepository.findByUsernameAndEmail(username.trim(), email.trim())
+        return userRepository.findByUsernameOrEmail(username.trim(), email.trim())
             .map(userMapper::toDto)
             .map(UserDTO::withoutPassword);
     }
@@ -141,6 +142,10 @@ public class UserServiceImpl implements UserService {
     public UserDTO register(UserRegisterDTO registerDTO) {
         if (registerDTO == null) {
             throw new IllegalArgumentException("Registration data cannot be null");
+        }
+
+        if (this.findDTOByUsernameOrEmail(registerDTO.getUsername(), registerDTO.getEmail()).isPresent()) {
+            throw new UserAlreadyExistsException("Username or email is already registered");
         }
 
         User entity = userMapper.toEntity(registerDTO);

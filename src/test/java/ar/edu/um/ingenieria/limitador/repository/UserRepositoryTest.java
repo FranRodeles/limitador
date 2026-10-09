@@ -157,7 +157,7 @@ class UserRepositoryTest {
         user.setActivated(true);
         userRepository.save(user);
 
-        Optional<User> found = userRepository.findByUsernameAndEmail("searchUser", "search@example.com");
+        Optional<User> found = userRepository.findByUsernameOrEmail("searchUser", "search@example.com");
 
         assertThat(found).isPresent();
         assertThat(found.get().getUsername()).isEqualTo("searchUser");
@@ -173,8 +173,8 @@ class UserRepositoryTest {
         user.setActivated(true);
         userRepository.save(user);
 
-        Optional<User> wrongEmail = userRepository.findByUsernameAndEmail("existingUser", "wrong@example.com");
-        Optional<User> wrongUser = userRepository.findByUsernameAndEmail("wrongUser", "existing@example.com");
+        Optional<User> wrongEmail = userRepository.findByUsernameOrEmail("existingUser", "wrong@example.com");
+        Optional<User> wrongUser = userRepository.findByUsernameOrEmail("wrongUser", "existing@example.com");
 
         assertThat(wrongEmail).isEmpty();
         assertThat(wrongUser).isEmpty();

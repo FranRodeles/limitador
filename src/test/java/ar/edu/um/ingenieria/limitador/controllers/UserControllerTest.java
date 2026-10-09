@@ -219,9 +219,9 @@ class UserControllerTest {
     }
 
     @Test
-    void shouldReturnUserByUsernameAndEmail() throws Exception {
+    void shouldReturnUserByUsernameOrEmail() throws Exception {
         var user = createUserDTO(1L, "jdoe", "jdoe@example.com");
-        when(userService.findDTOByUsernameAndEmail("jdoe", "jdoe@example.com")).thenReturn(Optional.of(user));
+        when(userService.findDTOByUsernameOrEmail("jdoe", "jdoe@example.com")).thenReturn(Optional.of(user));
 
         mockMvc.perform(get("/api/users/search?username=jdoe&email=jdoe@example.com"))
             .andExpect(status().isOk())
@@ -231,8 +231,8 @@ class UserControllerTest {
     }
 
     @Test
-    void shouldReturn404WhenUserNotFoundByUsernameAndEmail() throws Exception {
-        when(userService.findDTOByUsernameAndEmail("unknown", "unknown@example.com")).thenReturn(Optional.empty());
+    void shouldReturn404WhenUserNotFoundByUsernameOrEmail() throws Exception {
+        when(userService.findDTOByUsernameOrEmail("unknown", "unknown@example.com")).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/users/search?username=unknown&email=unknown@example.com"))
             .andExpect(status().isNotFound());
@@ -322,5 +322,65 @@ class UserControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(dtoWithoutPhone)))
             .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("POST /api/users/register should return 409 Conflict with RFC 9457 ProblemDetail when username already exists")
+    void shouldReturnConflictProblemDetailWhenUsernameAlreadyExists() throws Exception {
+        UserRegisterDTO registerDto = UserRegisterDTO.builder()
+            .username("existinguser")
+            .email("new@example.com")
+            .password("secret123")
+            .firstName("Jane")
+            .phoneNumber("+54 261 1111111")
+            .build();
+
+        when(userService.register(any(UserRegisterDTO.class)))
+            .thenThrow(new ar.edu.um.ingenieria.limitador.exception.UserAlreadyExistsException("Username 'existinguser' is already registered"));
+
+        mockMvc.perform(post("/api/users/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(registerDto)))
+            .andExpect(status().isConflict())
+            .andExpect(result -> {
+                String contentType = result.getResponse().getContentType();
+                assertThat(contentType).containsAnyOf(
+                    MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    MediaType.APPLICATION_JSON_VALUE
+                );
+            })
+            .andExpect(jsonPath("$.status", is(409)))
+            .andExpect(jsonPath("$.title", is("User Already Exists")))
+            .andExpect(jsonPath("$.detail", is("Username 'existinguser' is already registered")));
+    }
+
+    @Test
+    @DisplayName("POST /api/users/register should return 409 Conflict with RFC 9457 ProblemDetail when email already exists")
+    void shouldReturnConflictProblemDetailWhenEmailAlreadyExists() throws Exception {
+        UserRegisterDTO registerDto = UserRegisterDTO.builder()
+            .username("newuser")
+            .email("existing@example.com")
+            .password("secret123")
+            .firstName("Jane")
+            .phoneNumber("+54 261 1111111")
+            .build();
+
+        when(userService.register(any(UserRegisterDTO.class)))
+            .thenThrow(new ar.edu.um.ingenieria.limitador.exception.UserAlreadyExistsException("Email 'existing@example.com' is already registered"));
+
+        mockMvc.perform(post("/api/users/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(registerDto)))
+            .andExpect(status().isConflict())
+            .andExpect(result -> {
+                String contentType = result.getResponse().getContentType();
+                assertThat(contentType).containsAnyOf(
+                    MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    MediaType.APPLICATION_JSON_VALUE
+                );
+            })
+            .andExpect(jsonPath("$.status", is(409)))
+            .andExpect(jsonPath("$.title", is("User Already Exists")))
+            .andExpect(jsonPath("$.detail", is("Email 'existing@example.com' is already registered")));
     }
 }
