@@ -69,6 +69,13 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(registered);
     }
 
+    @PostMapping("/login")
+    public ResponseEntity<ar.edu.um.ingenieria.limitador.dto.UserLoginResponseDTO> login(
+            @Valid @RequestBody ar.edu.um.ingenieria.limitador.dto.UserLoginDTO loginDTO) {
+        ar.edu.um.ingenieria.limitador.dto.UserLoginResponseDTO response = userService.login(loginDTO);
+        return ResponseEntity.ok(response);
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<UserDTO> update(@PathVariable Long id, @RequestBody UserDTO userDTO) {
         UserDTO updated = userService.updateDTO(id, userDTO);

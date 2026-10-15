@@ -48,6 +48,12 @@ class UserServiceDtoTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private org.springframework.security.authentication.AuthenticationManager authenticationManager;
+
+    @Mock
+    private ar.edu.um.ingenieria.limitador.security.JwtService jwtService;
+
     @InjectMocks
     private UserServiceImpl userService;
 
@@ -325,6 +331,121 @@ class UserServiceDtoTest {
     @DisplayName("Should throw IllegalArgumentException when register payload is null")
     void shouldThrowExceptionWhenRegisterPayloadIsNull() {
         assertThatThrownBy(() -> userService.register(null))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("Should throw UserAlreadyExistsException when username already exists")
+    void shouldThrowWhenRegisteringExistingUsername() {
+        UserRegisterDTO registerDto = UserRegisterDTO.builder()
+            .username("existingUser")
+            .email("new@example.com")
+            .password("password123")
+            .firstName("First")
+            .phoneNumber("+123456")
+            .build();
+
+        when(userRepository.existsByUsername("existingUser")).thenReturn(true);
+
+        assertThatThrownBy(() -> userService.register(registerDto))
+            .isInstanceOf(UserAlreadyExistsException.class)
+            .hasMessage("Username 'existingUser' is already registered");
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should throw UserAlreadyExistsException when email already exists")
+    void shouldThrowWhenRegisteringExistingEmail() {
+        UserRegisterDTO registerDto = UserRegisterDTO.builder()
+            .username("newUser")
+            .email("existing@example.com")
+            .password("password123")
+            .firstName("First")
+            .phoneNumber("+123456")
+            .build();
+
+        when(userRepository.existsByUsername("newUser")).thenReturn(false);
+        when(userRepository.existsByEmail("existing@example.com")).thenReturn(true);
+
+        assertThatThrownBy(() -> userService.register(registerDto))
+            .isInstanceOf(UserAlreadyExistsException.class)
+            .hasMessage("Email 'existing@example.com' is already registered");
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should authenticate and return JWT token with success message when login credentials are valid")
+    void shouldAuthenticateAndReturnJwtWhenLoginCredentialsAreValid() {
+        ar.edu.um.ingenieria.limitador.dto.UserLoginDTO loginDTO = ar.edu.um.ingenieria.limitador.dto.UserLoginDTO.builder()
+            .username("johndoe")
+            .password("secret123")
+            .rememberMe(false)
+            .build();
+
+        User user = createUser(1L, "johndoe", "john@example.com", "hashed", true);
+        org.springframework.security.core.Authentication authResult =
+            new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+
+        when(authenticationManager.authenticate(any(org.springframework.security.core.Authentication.class)))
+            .thenReturn(authResult);
+        when(jwtService.generateToken(user, false)).thenReturn("mocked.jwt.token");
+
+        ar.edu.um.ingenieria.limitador.dto.UserLoginResponseDTO response = userService.login(loginDTO);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getToken()).isEqualTo("mocked.jwt.token");
+        assertThat(response.getMessage()).isEqualTo("Inicio de sesión exitoso");
+        verify(authenticationManager).authenticate(any(org.springframework.security.authentication.UsernamePasswordAuthenticationToken.class));
+        verify(jwtService).generateToken(user, false);
+    }
+
+    @Test
+    @DisplayName("Should pass rememberMe true to JwtService when rememberMe is true")
+    void shouldPassRememberMeTrueToJwtService() {
+        ar.edu.um.ingenieria.limitador.dto.UserLoginDTO loginDTO = ar.edu.um.ingenieria.limitador.dto.UserLoginDTO.builder()
+            .username("johndoe")
+            .password("secret123")
+            .rememberMe(true)
+            .build();
+
+        User user = createUser(1L, "johndoe", "john@example.com", "hashed", true);
+        org.springframework.security.core.Authentication authResult =
+            new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+
+        when(authenticationManager.authenticate(any(org.springframework.security.core.Authentication.class)))
+            .thenReturn(authResult);
+        when(jwtService.generateToken(user, true)).thenReturn("mocked.longlived.token");
+
+        ar.edu.um.ingenieria.limitador.dto.UserLoginResponseDTO response = userService.login(loginDTO);
+
+        assertThat(response.getToken()).isEqualTo("mocked.longlived.token");
+        verify(jwtService).generateToken(user, true);
+    }
+
+    @Test
+    @DisplayName("Should propagate BadCredentialsException with 'Error de usuario y/o de password' when authentication fails")
+    void shouldPropagateBadCredentialsExceptionWhenAuthFails() {
+        ar.edu.um.ingenieria.limitador.dto.UserLoginDTO loginDTO = ar.edu.um.ingenieria.limitador.dto.UserLoginDTO.builder()
+            .username("wronguser")
+            .password("wrongpassword")
+            .build();
+
+        when(authenticationManager.authenticate(any(org.springframework.security.core.Authentication.class)))
+            .thenThrow(new org.springframework.security.authentication.BadCredentialsException("Bad credentials"));
+
+        assertThatThrownBy(() -> userService.login(loginDTO))
+            .isInstanceOf(org.springframework.security.authentication.BadCredentialsException.class)
+            .hasMessage("Error de usuario y/o de password");
+
+        verify(jwtService, never()).generateToken(any(org.springframework.security.core.userdetails.UserDetails.class), any(boolean.class));
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when login DTO is null")
+    void shouldThrowExceptionWhenLoginDtoIsNull() {
+        assertThatThrownBy(() -> userService.login(null))
             .isInstanceOf(IllegalArgumentException.class);
     }
 }

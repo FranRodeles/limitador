@@ -16,4 +16,14 @@ public class GlobalExceptionHandler {
         problemDetail.setTitle("User Already Exists");
         return problemDetail;
     }
+
+    @ExceptionHandler(org.springframework.security.core.AuthenticationException.class)
+    public ProblemDetail handleAuthenticationException(org.springframework.security.core.AuthenticationException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+            HttpStatus.UNAUTHORIZED,
+            "Error de usuario y/o de password"
+        );
+        problemDetail.setTitle("Unauthorized");
+        return problemDetail;
+    }
 }

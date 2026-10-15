@@ -43,6 +43,12 @@ class UserServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private org.springframework.security.authentication.AuthenticationManager authenticationManager;
+
+    @Mock
+    private ar.edu.um.ingenieria.limitador.security.JwtService jwtService;
+
     @InjectMocks
     private UserServiceImpl userService;
 

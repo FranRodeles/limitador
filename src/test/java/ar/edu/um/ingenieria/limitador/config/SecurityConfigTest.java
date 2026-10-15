@@ -44,4 +44,12 @@ class SecurityConfigTest {
 
         assertThat(matches).isTrue();
     }
+
+    @Test
+    void shouldProvideAuthenticationManagerBean() {
+        org.springframework.security.authentication.AuthenticationManager authManager =
+            applicationContext.getBean(org.springframework.security.authentication.AuthenticationManager.class);
+
+        assertThat(authManager).isNotNull();
+    }
 }

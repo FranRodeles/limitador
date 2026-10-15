@@ -1,7 +1,14 @@
 package ar.edu.um.ingenieria.limitador.domain;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
+
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -26,7 +33,7 @@ import lombok.NoArgsConstructor;
 @Data
 @EqualsAndHashCode(exclude = {"roles", "userData"})
 @NoArgsConstructor
-public class User {
+public class User implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -44,6 +51,15 @@ public class User {
     @Column(nullable = false)
     private Boolean activated;
 
+    @Column(nullable = false)
+    private Boolean accountNonExpired;
+
+    @Column(nullable = false)
+    private Boolean accountNonLocked;
+
+    @Column(nullable = false)
+    private Boolean credentialsNonExpired;
+
     @JsonIgnore
     @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
@@ -57,4 +73,35 @@ public class User {
     @JoinColumn(name = "user_data_id")
     private UserData userData;
 
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        if (roles == null || roles.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return roles.stream()
+            .map(Role::getRoleName)
+            .filter(Objects::nonNull)
+            .map(SimpleGrantedAuthority::new)
+            .toList();
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return this.accountNonExpired;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return this.accountNonLocked;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return this.credentialsNonExpired;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return this.activated;
+    }
 }

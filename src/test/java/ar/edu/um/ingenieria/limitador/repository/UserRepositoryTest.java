@@ -165,7 +165,7 @@ class UserRepositoryTest {
     }
 
     @Test
-    void shouldReturnEmptyWhenUsernameOrEmailDoesNotMatch() {
+    void shouldReturnEmptyWhenNeitherUsernameNorEmailMatches() {
         var user = new User();
         user.setUsername("existingUser");
         user.setEmail("existing@example.com");
@@ -173,10 +173,44 @@ class UserRepositoryTest {
         user.setActivated(true);
         userRepository.save(user);
 
-        Optional<User> wrongEmail = userRepository.findByUsernameOrEmail("existingUser", "wrong@example.com");
-        Optional<User> wrongUser = userRepository.findByUsernameOrEmail("wrongUser", "existing@example.com");
+        Optional<User> notFound = userRepository.findByUsernameOrEmail("wrongUser", "wrong@example.com");
+        Optional<User> matchUsername = userRepository.findByUsernameOrEmail("existingUser", "wrong@example.com");
+        Optional<User> matchEmail = userRepository.findByUsernameOrEmail("wrongUser", "existing@example.com");
 
-        assertThat(wrongEmail).isEmpty();
-        assertThat(wrongUser).isEmpty();
+        assertThat(notFound).isEmpty();
+        assertThat(matchUsername).isPresent();
+        assertThat(matchEmail).isPresent();
+    }
+
+    @Test
+    void shouldFindUserByUsername() {
+        var user = new User();
+        user.setUsername("singleUser");
+        user.setEmail("single@example.com");
+        user.setPassword("secret123");
+        user.setActivated(true);
+        userRepository.save(user);
+
+        Optional<User> found = userRepository.findByUsername("singleUser");
+        assertThat(found).isPresent();
+        assertThat(found.get().getUsername()).isEqualTo("singleUser");
+        assertThat(userRepository.findByUsername("nonExistent")).isEmpty();
+    }
+
+    @Test
+    void shouldFindUserByEmailAndCheckExistence() {
+        var user = new User();
+        user.setUsername("checkUser");
+        user.setEmail("check@example.com");
+        user.setPassword("secret123");
+        user.setActivated(true);
+        userRepository.save(user);
+
+        assertThat(userRepository.findByEmail("check@example.com")).isPresent();
+        assertThat(userRepository.findByEmail("unknown@example.com")).isEmpty();
+        assertThat(userRepository.existsByUsername("checkUser")).isTrue();
+        assertThat(userRepository.existsByUsername("unknownUser")).isFalse();
+        assertThat(userRepository.existsByEmail("check@example.com")).isTrue();
+        assertThat(userRepository.existsByEmail("unknown@example.com")).isFalse();
     }
 }

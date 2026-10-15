@@ -25,4 +25,5 @@ public interface UserService {
     UserDTO saveDTO(UserDTO userDTO);
     UserDTO updateDTO(Long id, UserDTO userDTO);
     UserDTO register(UserRegisterDTO registerDTO);
+    ar.edu.um.ingenieria.limitador.dto.UserLoginResponseDTO login(ar.edu.um.ingenieria.limitador.dto.UserLoginDTO loginDTO);
 }

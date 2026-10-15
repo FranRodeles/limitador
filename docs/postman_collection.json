@@ -37,6 +37,10 @@
     {
       "key": "size",
       "value": "20"
+    },
+    {
+      "key": "authToken",
+      "value": ""
     }
   ],
   "item": [
@@ -330,6 +334,45 @@
                 "api",
                 "users",
                 "register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Iniciar sesión",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.token) pm.collectionVariables.set('authToken', body.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"juan.perez\",\n  \"password\": \"secret123\",\n  \"rememberMe\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "login"
               ]
             }
           }

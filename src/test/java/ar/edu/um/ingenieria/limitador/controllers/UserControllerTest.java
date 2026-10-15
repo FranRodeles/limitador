@@ -383,4 +383,69 @@ class UserControllerTest {
             .andExpect(jsonPath("$.title", is("User Already Exists")))
             .andExpect(jsonPath("$.detail", is("Email 'existing@example.com' is already registered")));
     }
+
+    @Test
+    @DisplayName("POST /api/users/login should return 200 OK with token and success message when credentials are valid")
+    void shouldReturnTokenAndSuccessMessageWhenLoginSucceeds() throws Exception {
+        ar.edu.um.ingenieria.limitador.dto.UserLoginDTO loginDto = ar.edu.um.ingenieria.limitador.dto.UserLoginDTO.builder()
+            .username("johndoe")
+            .password("secret123")
+            .rememberMe(false)
+            .build();
+
+        ar.edu.um.ingenieria.limitador.dto.UserLoginResponseDTO responseDto = ar.edu.um.ingenieria.limitador.dto.UserLoginResponseDTO.builder()
+            .token("header.payload.signature")
+            .message("Inicio de sesión exitoso")
+            .build();
+
+        when(userService.login(any(ar.edu.um.ingenieria.limitador.dto.UserLoginDTO.class))).thenReturn(responseDto);
+
+        mockMvc.perform(post("/api/users/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(loginDto)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.token", is("header.payload.signature")))
+            .andExpect(jsonPath("$.message", is("Inicio de sesión exitoso")));
+    }
+
+    @Test
+    @DisplayName("POST /api/users/login should return 401 Unauthorized with RFC 9457 ProblemDetail on bad credentials")
+    void shouldReturnUnauthorizedProblemDetailWhenLoginFails() throws Exception {
+        ar.edu.um.ingenieria.limitador.dto.UserLoginDTO loginDto = ar.edu.um.ingenieria.limitador.dto.UserLoginDTO.builder()
+            .username("johndoe")
+            .password("wrongpassword")
+            .build();
+
+        when(userService.login(any(ar.edu.um.ingenieria.limitador.dto.UserLoginDTO.class)))
+            .thenThrow(new org.springframework.security.authentication.BadCredentialsException("Error de usuario y/o de password"));
+
+        mockMvc.perform(post("/api/users/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(loginDto)))
+            .andExpect(status().isUnauthorized())
+            .andExpect(result -> {
+                String contentType = result.getResponse().getContentType();
+                assertThat(contentType).containsAnyOf(
+                    MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    MediaType.APPLICATION_JSON_VALUE
+                );
+            })
+            .andExpect(jsonPath("$.status", is(401)))
+            .andExpect(jsonPath("$.title", is("Unauthorized")))
+            .andExpect(jsonPath("$.detail", is("Error de usuario y/o de password")));
+    }
+
+    @Test
+    @DisplayName("POST /api/users/login should return 400 Bad Request when username or password is blank")
+    void shouldReturnBadRequestWhenLoginFieldsAreBlank() throws Exception {
+        ar.edu.um.ingenieria.limitador.dto.UserLoginDTO invalidDto = ar.edu.um.ingenieria.limitador.dto.UserLoginDTO.builder()
+            .username("")
+            .password("")
+            .build();
+
+        mockMvc.perform(post("/api/users/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(invalidDto)))
+            .andExpect(status().isBadRequest());
+    }
 }

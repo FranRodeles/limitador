@@ -55,4 +55,37 @@ class UserTest {
 
         assertThat(user.getPassword()).isEqualTo("secretPassword");
     }
+
+    @Test
+    void shouldImplementUserDetailsAndReturnCorrectAuthorities() {
+        var roleUser = new Role();
+        roleUser.setRoleName("ROLE_USER");
+        roleUser.setDescription("User");
+
+        var user = new User();
+        user.setUsername("testuser");
+        user.setPassword("hashedpassword");
+        user.setActivated(true);
+        user.setRoles(Set.of(roleUser));
+
+        org.springframework.security.core.userdetails.UserDetails userDetails = user;
+        assertThat(userDetails.getUsername()).isEqualTo("testuser");
+        assertThat(userDetails.getPassword()).isEqualTo("hashedpassword");
+        assertThat(userDetails.isAccountNonExpired()).isTrue();
+        assertThat(userDetails.isAccountNonLocked()).isTrue();
+        assertThat(userDetails.isCredentialsNonExpired()).isTrue();
+        assertThat(userDetails.isEnabled()).isTrue();
+        assertThat(userDetails.getAuthorities())
+            .extracting(org.springframework.security.core.GrantedAuthority::getAuthority)
+            .containsExactly("ROLE_USER");
+    }
+
+    @Test
+    void shouldReturnDisabledWhenUserIsNotActivated() {
+        var user = new User();
+        user.setActivated(false);
+
+        org.springframework.security.core.userdetails.UserDetails userDetails = user;
+        assertThat(userDetails.isEnabled()).isFalse();
+    }
 }
