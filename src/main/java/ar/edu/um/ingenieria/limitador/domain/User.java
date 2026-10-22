@@ -49,16 +49,16 @@ public class User implements UserDetails {
     private String password;
 
     @Column(nullable = false)
-    private Boolean activated;
+    private Boolean activated = false;
 
     @Column(nullable = false)
-    private Boolean accountNonExpired;
+    private Boolean accountNonExpired = true;
 
     @Column(nullable = false)
-    private Boolean accountNonLocked;
+    private Boolean accountNonLocked = true;
 
     @Column(nullable = false)
-    private Boolean credentialsNonExpired;
+    private Boolean credentialsNonExpired = true;
 
     @JsonIgnore
     @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})

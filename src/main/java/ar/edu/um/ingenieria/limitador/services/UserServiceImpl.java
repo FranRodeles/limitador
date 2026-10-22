@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -123,6 +124,9 @@ public class UserServiceImpl implements UserService {
     public UserDTO saveDTO(UserDTO userDTO) {
         User entity = userMapper.toEntity(userDTO);
         entity.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+        if (entity.getActivated() == null) {
+            entity.setActivated(false);
+        }
         if (entity.getUserData() != null) {
             entity.getUserData().setId(null);
         }
@@ -142,6 +146,9 @@ public class UserServiceImpl implements UserService {
         User entity = userMapper.toEntity(userDTO);
         entity.setId(id);
         entity.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+        if (entity.getActivated() == null) {
+            entity.setActivated(existing.getActivated());
+        }
         if (existing.getUserData() != null && entity.getUserData() != null) {
             entity.getUserData().setId(existing.getUserData().getId());
         }
@@ -175,8 +182,29 @@ public class UserServiceImpl implements UserService {
             entity.getUserData().setUser(entity);
         }
 
-        User saved = userRepository.save(entity);
+        User saved;
+        try {
+            saved = userRepository.save(entity);
+        } catch (DataIntegrityViolationException ex) {
+            // A concurrent registration can slip past the exists* checks: the unique
+            // constraints on username/email are the source of truth, so translate the
+            // violation into the same domain error the sequential path produces.
+            throw translateDuplicateRegistration(registerDTO, ex);
+        }
         return userMapper.toDto(saved).withoutPassword();
+    }
+
+    private UserAlreadyExistsException translateDuplicateRegistration(
+            UserRegisterDTO registerDTO, DataIntegrityViolationException violation) {
+        if (userRepository.existsByUsername(registerDTO.getUsername())) {
+            return new UserAlreadyExistsException(
+                "Username '" + registerDTO.getUsername() + "' is already registered");
+        }
+        if (userRepository.existsByEmail(registerDTO.getEmail())) {
+            return new UserAlreadyExistsException(
+                "Email '" + registerDTO.getEmail() + "' is already registered");
+        }
+        throw violation;
     }
 
     @Override
@@ -209,11 +237,23 @@ public class UserServiceImpl implements UserService {
         Set<Role> resolved = new HashSet<>();
         for (Role role : roles) {
             if (role.getRoleName() != null) {
-                Role existingRole = roleRepository.findByRoleName(role.getRoleName())
-                    .orElseGet(() -> roleRepository.save(role));
-                resolved.add(existingRole);
+                resolved.add(findOrCreateRole(role));
             }
         }
         return resolved;
+    }
+
+    private Role findOrCreateRole(Role role) {
+        return roleRepository.findByRoleName(role.getRoleName())
+            .orElseGet(() -> {
+                try {
+                    return roleRepository.save(role);
+                } catch (DataIntegrityViolationException ex) {
+                    // A concurrent request created the same role between our lookup and
+                    // the insert: the winner's row is now committed, so reuse it.
+                    return roleRepository.findByRoleName(role.getRoleName())
+                        .orElseThrow(() -> ex);
+                }
+            });
     }
 }

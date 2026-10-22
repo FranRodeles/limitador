@@ -8,6 +8,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -18,12 +19,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import ar.edu.um.ingenieria.limitador.domain.Role;
 import ar.edu.um.ingenieria.limitador.domain.User;
 import ar.edu.um.ingenieria.limitador.domain.UserData;
 import ar.edu.um.ingenieria.limitador.dto.UserDTO;
@@ -180,6 +183,54 @@ class UserServiceDtoTest {
     }
 
     @Test
+    @DisplayName("Should reuse a role created concurrently instead of failing with a constraint violation")
+    void shouldReuseRoleCreatedConcurrently() {
+        UserDTO inputDto = UserDTO.builder()
+            .username("roleRace")
+            .email("roleRace@test.com")
+            .password("secret")
+            .activated(true)
+            .roles(Set.of("ROLE_NEW"))
+            .build();
+
+        Role requestedRole = new Role();
+        requestedRole.setRoleName("ROLE_NEW");
+        requestedRole.setDescription("New role");
+
+        Role existingRole = new Role();
+        existingRole.setId(7L);
+        existingRole.setRoleName("ROLE_NEW");
+        existingRole.setDescription("New role");
+
+        User entityToSave = createUser(null, "roleRace", "roleRace@test.com", "secret", true);
+        entityToSave.setRoles(new HashSet<>(Set.of(requestedRole)));
+
+        User savedEntity = createUser(11L, "roleRace", "roleRace@test.com", "$2a$10$hash", true);
+        UserDTO expectedDto = UserDTO.builder()
+            .id(11L)
+            .username("roleRace")
+            .email("roleRace@test.com")
+            .activated(true)
+            .roles(Set.of("ROLE_NEW"))
+            .build();
+
+        when(userMapper.toEntity(inputDto)).thenReturn(entityToSave);
+        when(passwordEncoder.encode("secret")).thenReturn("$2a$10$hash");
+        when(roleRepository.findByRoleName("ROLE_NEW"))
+            .thenReturn(Optional.empty(), Optional.of(existingRole));
+        when(roleRepository.save(any(Role.class)))
+            .thenThrow(new DataIntegrityViolationException("roles_role_name_key"));
+        when(userRepository.save(entityToSave)).thenReturn(savedEntity);
+        when(userMapper.toDto(savedEntity)).thenReturn(expectedDto);
+
+        UserDTO result = userService.saveDTO(inputDto);
+
+        assertThat(result.getId()).isEqualTo(11L);
+        assertThat(entityToSave.getRoles()).containsExactly(existingRole);
+        verify(roleRepository).save(any(Role.class));
+    }
+
+    @Test
     @DisplayName("Should update existing user via UserDTO")
     void shouldUpdateExistingUserDTO() {
         UserDTO updateDto = UserDTO.builder()
@@ -207,6 +258,64 @@ class UserServiceDtoTest {
         assertThat(mappedUser.getId()).isEqualTo(5L);
         verify(passwordEncoder).encode("newPass");
         verify(userRepository, times(1)).save(mappedUser);
+    }
+
+    @Test
+    @DisplayName("Should default activated to false when UserDTO omits it")
+    void shouldDefaultActivatedToFalseWhenDtoOmitsIt() {
+        UserDTO inputDto = UserDTO.builder()
+            .username("noFlag")
+            .email("noFlag@test.com")
+            .password("secret")
+            .build();
+
+        User entityToSave = createUser(null, "noFlag", "noFlag@test.com", "secret", null);
+        User savedEntity = createUser(12L, "noFlag", "noFlag@test.com", "$2a$10$hash", false);
+        UserDTO expectedDto = UserDTO.builder()
+            .id(12L)
+            .username("noFlag")
+            .email("noFlag@test.com")
+            .activated(false)
+            .build();
+
+        when(userMapper.toEntity(inputDto)).thenReturn(entityToSave);
+        when(passwordEncoder.encode("secret")).thenReturn("$2a$10$hash");
+        when(userRepository.save(entityToSave)).thenReturn(savedEntity);
+        when(userMapper.toDto(savedEntity)).thenReturn(expectedDto);
+
+        userService.saveDTO(inputDto);
+
+        assertThat(entityToSave.getActivated()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should keep the stored activation flag when UserDTO omits it on update")
+    void shouldKeepStoredActivationFlagWhenDtoOmitsItOnUpdate() {
+        UserDTO updateDto = UserDTO.builder()
+            .username("updatedUser")
+            .email("updated@test.com")
+            .password("newPass")
+            .build();
+
+        User existingUser = createUser(5L, "oldUser", "old@test.com", "oldPass", true);
+        User mappedUser = createUser(null, "updatedUser", "updated@test.com", "newPass", null);
+        User savedUser = createUser(5L, "updatedUser", "updated@test.com", "$2a$10$hash", true);
+        UserDTO resultDto = UserDTO.builder()
+            .id(5L)
+            .username("updatedUser")
+            .email("updated@test.com")
+            .activated(true)
+            .build();
+
+        when(userRepository.findById(5L)).thenReturn(Optional.of(existingUser));
+        when(userMapper.toEntity(updateDto)).thenReturn(mappedUser);
+        when(passwordEncoder.encode("newPass")).thenReturn("$2a$10$hash");
+        when(userRepository.save(mappedUser)).thenReturn(savedUser);
+        when(userMapper.toDto(savedUser)).thenReturn(resultDto);
+
+        userService.updateDTO(5L, updateDto);
+
+        assertThat(mappedUser.getActivated()).isTrue();
     }
 
     @Test
@@ -373,6 +482,33 @@ class UserServiceDtoTest {
             .hasMessage("Email 'existing@example.com' is already registered");
 
         verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should translate uniqueness violation from a concurrent registration into UserAlreadyExistsException")
+    void shouldTranslateConcurrentDuplicateRegistrationIntoUserAlreadyExistsException() {
+        UserRegisterDTO registerDto = UserRegisterDTO.builder()
+            .username("raceUser")
+            .email("race@example.com")
+            .password("password123")
+            .firstName("Race")
+            .phoneNumber("+123456")
+            .build();
+
+        User entityToSave = createUser(null, "raceUser", "race@example.com", "password123", false);
+
+        when(userRepository.existsByUsername("raceUser")).thenReturn(false, true);
+        when(userRepository.existsByEmail("race@example.com")).thenReturn(false);
+        when(userMapper.toEntity(registerDto)).thenReturn(entityToSave);
+        when(passwordEncoder.encode("password123")).thenReturn("$2a$10$hash");
+        when(userRepository.save(entityToSave))
+            .thenThrow(new DataIntegrityViolationException("users_username_key"));
+
+        assertThatThrownBy(() -> userService.register(registerDto))
+            .isInstanceOf(UserAlreadyExistsException.class)
+            .hasMessage("Username 'raceUser' is already registered");
+
+        verify(userRepository).save(entityToSave);
     }
 
     @Test
