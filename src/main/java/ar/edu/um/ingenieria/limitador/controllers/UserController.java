@@ -1,11 +1,11 @@
 package ar.edu.um.ingenieria.limitador.controllers;
 
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,14 +16,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import jakarta.validation.Valid;
-
 import ar.edu.um.ingenieria.limitador.dto.UserDTO;
-import ar.edu.um.ingenieria.limitador.dto.UserRegisterDTO;
 import ar.edu.um.ingenieria.limitador.services.UserService;
 
 @RestController
 @RequestMapping("/api/users")
+@PreAuthorize("hasRole('ADMIN')")
 public class UserController {
 
     private final UserService userService;
@@ -51,9 +49,7 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UserDTO> findById(@PathVariable("id") Long id,
-            @org.springframework.security.core.annotation.AuthenticationPrincipal ar.edu.um.ingenieria.limitador.domain.User principal) {
-        authorizeProfileAccess(principal, id);
+    public ResponseEntity<UserDTO> findById(@PathVariable("id") Long id) {
         return userService.findDTOById(id)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
@@ -65,37 +61,10 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<UserDTO> register(@Valid @RequestBody UserRegisterDTO registerDTO) {
-        UserDTO registered = userService.register(registerDTO);
-        return ResponseEntity.status(HttpStatus.CREATED).body(registered);
-    }
-
-    @PostMapping("/login")
-    public ResponseEntity<ar.edu.um.ingenieria.limitador.dto.UserLoginResponseDTO> login(
-            @Valid @RequestBody ar.edu.um.ingenieria.limitador.dto.UserLoginDTO loginDTO) {
-        ar.edu.um.ingenieria.limitador.dto.UserLoginResponseDTO response = userService.login(loginDTO);
-        return ResponseEntity.ok(response);
-    }
-
     @PutMapping("/{id}")
-    public ResponseEntity<UserDTO> update(@PathVariable("id") Long id, @RequestBody UserDTO userDTO,
-            @org.springframework.security.core.annotation.AuthenticationPrincipal ar.edu.um.ingenieria.limitador.domain.User principal) {
-        authorizeProfileAccess(principal, id);
+    public ResponseEntity<UserDTO> update(@PathVariable("id") Long id, @RequestBody UserDTO userDTO) {
         UserDTO updated = userService.updateDTO(id, userDTO);
         return ResponseEntity.ok(updated);
-    }
-
-    private void authorizeProfileAccess(ar.edu.um.ingenieria.limitador.domain.User principal, Long id) {
-        if (principal == null) {
-            return;
-        }
-        boolean isAdmin = principal.getAuthorities().stream()
-            .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
-        boolean isOwner = principal.getId() != null && principal.getId().equals(id);
-        if (!isAdmin && !isOwner) {
-            throw new org.springframework.security.access.AccessDeniedException("No autorizado");
-        }
     }
 
     @DeleteMapping("/{id}")

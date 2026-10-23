@@ -55,7 +55,7 @@ class UserRegistrationIntegrationTest {
             .phoneNumber("+44 20 7946 0991")
             .build();
 
-        var mvcResult = mockMvc.perform(post("/api/users/register")
+        var mvcResult = mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(registrationDto)))
             .andExpect(status().isCreated())
@@ -107,7 +107,7 @@ class UserRegistrationIntegrationTest {
             .phoneNumber(null)
             .build();
 
-        mockMvc.perform(post("/api/users/register")
+        mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(registrationDto)))
             .andExpect(status().isBadRequest());
@@ -124,7 +124,7 @@ class UserRegistrationIntegrationTest {
             .phoneNumber("+123456789")
             .build();
 
-        mockMvc.perform(post("/api/users/register")
+        mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(firstDto)))
             .andExpect(status().isCreated());
@@ -137,7 +137,7 @@ class UserRegistrationIntegrationTest {
             .phoneNumber("+987654321")
             .build();
 
-        mockMvc.perform(post("/api/users/register")
+        mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(duplicateUsernameDto)))
             .andExpect(status().isConflict())
@@ -164,7 +164,7 @@ class UserRegistrationIntegrationTest {
             .phoneNumber("+123456789")
             .build();
 
-        mockMvc.perform(post("/api/users/register")
+        mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(firstDto)))
             .andExpect(status().isCreated());
@@ -177,7 +177,7 @@ class UserRegistrationIntegrationTest {
             .phoneNumber("+987654321")
             .build();
 
-        mockMvc.perform(post("/api/users/register")
+        mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(duplicateEmailDto)))
             .andExpect(status().isConflict())

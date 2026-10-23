@@ -78,18 +78,16 @@ class SecurityAuthorizationTest {
     }
 
     @Test
-    @DisplayName("Authorization: user role can read its own profile")
-    void shouldAllowUserToReadOwnProfile() throws Exception {
-        mockMvc.perform(get("/api/users/" + userId)
-                .header("Authorization", "Bearer " + userToken))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.username", is("regular.user")));
+    @DisplayName("Authorization: anonymous user gets 401 reading a profile by id")
+    void shouldReturn401WhenAnonymousReadsProfile() throws Exception {
+        mockMvc.perform(get("/api/users/" + userId))
+            .andExpect(status().isUnauthorized());
     }
 
     @Test
-    @DisplayName("Authorization: user role gets 401 'No autorizado' reading another profile")
-    void shouldReturn401NoAutorizadoWhenUserRoleReadsAnotherProfile() throws Exception {
-        mockMvc.perform(get("/api/users/" + adminId)
+    @DisplayName("Authorization: user role gets 401 'No autorizado' reading a profile by id")
+    void shouldReturn401NoAutorizadoWhenUserRoleReadsProfile() throws Exception {
+        mockMvc.perform(get("/api/users/" + userId)
                 .header("Authorization", "Bearer " + userToken))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.detail", is("No autorizado")));
@@ -105,21 +103,18 @@ class SecurityAuthorizationTest {
     }
 
     @Test
-    @DisplayName("Authorization: user role can update its own profile")
-    void shouldAllowUserToUpdateOwnProfile() throws Exception {
+    @DisplayName("Authorization: anonymous user gets 401 updating a profile by id")
+    void shouldReturn401WhenAnonymousUpdatesProfile() throws Exception {
         mockMvc.perform(put("/api/users/" + userId)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(ownProfilePayload()))
-                .header("Authorization", "Bearer " + userToken))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.username", is("regular.user")))
-            .andExpect(jsonPath("$.firstName", is("Regular")));
+                .content(objectMapper.writeValueAsString(ownProfilePayload())))
+            .andExpect(status().isUnauthorized());
     }
 
     @Test
-    @DisplayName("Authorization: user role gets 401 'No autorizado' updating another profile")
-    void shouldReturn401NoAutorizadoWhenUserRoleUpdatesAnotherProfile() throws Exception {
-        mockMvc.perform(put("/api/users/" + adminId)
+    @DisplayName("Authorization: user role gets 401 'No autorizado' updating a profile by id")
+    void shouldReturn401NoAutorizadoWhenUserRoleUpdatesProfile() throws Exception {
+        mockMvc.perform(put("/api/users/" + userId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(ownProfilePayload()))
                 .header("Authorization", "Bearer " + userToken))
@@ -313,7 +308,7 @@ class SecurityAuthorizationTest {
             .rememberMe(false)
             .build();
 
-        mockMvc.perform(post("/api/users/login")
+        mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(loginPayload)))
             .andExpect(status().isOk())
@@ -333,7 +328,7 @@ class SecurityAuthorizationTest {
             .address("Public Street 9")
             .build();
 
-        mockMvc.perform(post("/api/users/register")
+        mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(registerPayload)))
             .andExpect(status().isCreated())

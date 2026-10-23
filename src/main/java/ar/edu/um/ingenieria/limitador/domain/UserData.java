@@ -10,11 +10,15 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Entity
 @Table(name = "users_data")
 @Data
+@EqualsAndHashCode(exclude = {"user"})
+@ToString(exclude = {"user"})
 @NoArgsConstructor
 public class UserData {
     @Id

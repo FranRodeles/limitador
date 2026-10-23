@@ -2,8 +2,18 @@
   "info": {
     "_postman_id": "8d7d52f8-7c8b-4c41-9a9e-0c2b3e8c8c01",
     "name": "SystemDesign API - CRUD",
-    "description": "Coleccion CRUD para la API de usuarios, roles y datos de usuario.",
+    "description": "Colección para la API de autenticación (/api/auth), usuarios (/api/users), roles (/api/roles) y datos de usuario (/api/users-data).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
   },
   "variable": [
     {
@@ -44,6 +54,92 @@
     }
   ],
   "item": [
+    {
+      "name": "Autenticación",
+      "auth": {
+        "type": "noauth"
+      },
+      "item": [
+        {
+          "name": "Registrar usuario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.id) pm.collectionVariables.set('userId', body.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"juan.perez\",\n  \"email\": \"juan.perez@example.com\",\n  \"password\": \"secret123\",\n  \"firstName\": \"Juan\",\n  \"lastName\": \"Perez\",\n  \"address\": \"Calle Falsa 123\",\n  \"phoneNumber\": \"+54 261 1234567\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Iniciar sesión",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.token) pm.collectionVariables.set('authToken', body.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"juan.perez\",\n  \"password\": \"secret123\",\n  \"rememberMe\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          }
+        }
+      ]
+    },
     {
       "name": "Roles",
       "item": [
@@ -300,84 +396,6 @@
           }
         },
         {
-          "name": "Registrar usuario",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const body = pm.response.json();",
-                  "if (body.id) pm.collectionVariables.set('userId', body.id);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"username\": \"juan.perez\",\n  \"email\": \"juan.perez@example.com\",\n  \"password\": \"secret123\",\n  \"firstName\": \"Juan\",\n  \"lastName\": \"Perez\",\n  \"address\": \"Calle Falsa 123\",\n  \"phoneNumber\": \"+54 261 1234567\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/users/register",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "register"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Iniciar sesión",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const body = pm.response.json();",
-                  "if (body.token) pm.collectionVariables.set('authToken', body.token);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"username\": \"juan.perez\",\n  \"password\": \"secret123\",\n  \"rememberMe\": false\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/users/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "login"
-              ]
-            }
-          }
-        },
-        {
           "name": "Crear usuario",
           "event": [
             {
@@ -396,7 +414,7 @@
             "header": [{"key": "Content-Type", "value": "application/json"}],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"juan.perez\",\n  \"email\": \"juan.perez@example.com\",\n  \"activated\": true,\n  \"roles\": [],\n  \"userData\": null\n}"
+              "raw": "{\n  \"username\": \"juan.perez\",\n  \"email\": \"juan.perez@example.com\",\n  \"password\": \"secret123\",\n  \"activated\": true,\n  \"roles\": [\n    \"ROLE_USER\"\n  ],\n  \"firstName\": \"Juan\",\n  \"lastName\": \"Perez\",\n  \"address\": \"Calle Falsa 123\",\n  \"phoneNumber\": \"+54 261 1234567\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/users",
@@ -412,7 +430,7 @@
             "header": [{"key": "Content-Type", "value": "application/json"}],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"juan.perez\",\n  \"email\": \"juan.perez.updated@example.com\",\n  \"activated\": true,\n  \"roles\": [],\n  \"userData\": null\n}"
+              "raw": "{\n  \"username\": \"juan.perez\",\n  \"email\": \"juan.perez.updated@example.com\",\n  \"password\": \"secret123\",\n  \"activated\": true,\n  \"roles\": [\n    \"ROLE_USER\"\n  ],\n  \"firstName\": \"Juan Carlos\",\n  \"lastName\": \"Perez\",\n  \"address\": \"Avenida 456\",\n  \"phoneNumber\": \"+54 261 5555678\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/users/{{userId}}",

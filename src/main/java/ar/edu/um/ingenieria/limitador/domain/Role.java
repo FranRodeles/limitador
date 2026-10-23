@@ -15,11 +15,13 @@ import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Entity
 @Table(name = "roles")
 @Data
 @EqualsAndHashCode(exclude = {"users"})
+@ToString(exclude = {"users"})
 @NoArgsConstructor
 public class Role {
 

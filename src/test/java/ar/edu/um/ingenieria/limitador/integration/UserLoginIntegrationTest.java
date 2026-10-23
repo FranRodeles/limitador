@@ -67,8 +67,8 @@ class UserLoginIntegrationTest {
     @BeforeEach
     void setUp() {
         Role role = new Role();
-        role.setRoleName("ROLE_USER");
-        role.setDescription("Standard user");
+        role.setRoleName("ROLE_ADMIN");
+        role.setDescription("Admin user");
         Role savedRole = roleRepository.save(role);
 
         testUser = new User();
@@ -89,7 +89,7 @@ class UserLoginIntegrationTest {
             .rememberMe(false)
             .build();
 
-        var result = mockMvc.perform(post("/api/users/login")
+        var result = mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(loginDto)))
             .andExpect(status().isOk())
@@ -117,7 +117,7 @@ class UserLoginIntegrationTest {
             .rememberMe(false)
             .build();
 
-        mockMvc.perform(post("/api/users/login")
+        mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(loginDto)))
             .andExpect(status().isUnauthorized())
@@ -142,7 +142,7 @@ class UserLoginIntegrationTest {
             .rememberMe(false)
             .build();
 
-        mockMvc.perform(post("/api/users/login")
+        mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(loginDto)))
             .andExpect(status().isUnauthorized())
@@ -161,7 +161,7 @@ class UserLoginIntegrationTest {
             .build();
 
         Instant before = Instant.now();
-        var result = mockMvc.perform(post("/api/users/login")
+        var result = mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(loginDto)))
             .andExpect(status().isOk())
@@ -189,7 +189,7 @@ class UserLoginIntegrationTest {
             .build();
 
         Instant before = Instant.now();
-        var result = mockMvc.perform(post("/api/users/login")
+        var result = mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(loginDto)))
             .andExpect(status().isOk())
@@ -215,7 +215,7 @@ class UserLoginIntegrationTest {
             .password(RAW_PASSWORD)
             .build();
 
-        var result = mockMvc.perform(post("/api/users/login")
+        var result = mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(loginDto)))
             .andExpect(status().isOk())
@@ -246,7 +246,7 @@ class UserLoginIntegrationTest {
             .password(RAW_PASSWORD)
             .build();
 
-        var result = mockMvc.perform(post("/api/users/login")
+        var result = mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(loginDto)))
             .andExpect(status().isOk())
@@ -275,7 +275,7 @@ class UserLoginIntegrationTest {
             .password(RAW_PASSWORD)
             .build();
 
-        mockMvc.perform(post("/api/users/login")
+        mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(loginDto)))
             .andExpect(status().isUnauthorized())

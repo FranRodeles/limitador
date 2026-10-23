@@ -21,6 +21,9 @@ class UserRepositoryTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private RoleRepository roleRepository;
+
     @Test
     void shouldSaveAndFindUserById() {
         var user = new User();
@@ -212,5 +215,34 @@ class UserRepositoryTest {
         assertThat(userRepository.existsByUsername("unknownUser")).isFalse();
         assertThat(userRepository.existsByEmail("check@example.com")).isTrue();
         assertThat(userRepository.existsByEmail("unknown@example.com")).isFalse();
+    }
+
+    @Test
+    @org.springframework.transaction.annotation.Transactional(
+        propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED
+    )
+    void shouldLoadRolesEagerlySoGetAuthoritiesWorksOutsideHibernateSession() {
+        var role = new Role();
+        role.setDescription("Admin");
+        role.setRoleName("ROLE_DETACHED_TEST");
+
+        var user = new User();
+        user.setUsername("detachedSessionUser");
+        user.setEmail("detached@example.com");
+        user.setPassword("secret123");
+        user.setActivated(true);
+        user.getRoles().add(role);
+
+        User saved = userRepository.save(user);
+        try {
+            User found = userRepository.findByUsername("detachedSessionUser").orElseThrow();
+
+            assertThat(found.getAuthorities())
+                .extracting(org.springframework.security.core.GrantedAuthority::getAuthority)
+                .containsExactly("ROLE_DETACHED_TEST");
+        } finally {
+            userRepository.deleteById(saved.getId());
+            saved.getRoles().forEach(r -> roleRepository.deleteById(r.getId()));
+        }
     }
 }
