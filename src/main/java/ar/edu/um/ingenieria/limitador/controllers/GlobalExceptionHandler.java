@@ -26,4 +26,9 @@ public class GlobalExceptionHandler {
         problemDetail.setTitle("Unauthorized");
         return problemDetail;
     }
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ProblemDetail handleAccessDenied() {
+        return ar.edu.um.ingenieria.limitador.security.UnauthorizedAccessHandler.problemDetail();
+    }
 }

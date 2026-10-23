@@ -14,17 +14,21 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 import ar.edu.um.ingenieria.limitador.security.JwtAuthenticationEntryPoint;
 import ar.edu.um.ingenieria.limitador.security.JwtAuthenticationFilter;
+import ar.edu.um.ingenieria.limitador.security.UnauthorizedAccessHandler;
 
 @Configuration
 public class SecurityConfig {
 
     private final org.springframework.beans.factory.ObjectProvider<JwtAuthenticationFilter> jwtAuthenticationFilterProvider;
     private final org.springframework.beans.factory.ObjectProvider<JwtAuthenticationEntryPoint> jwtAuthenticationEntryPointProvider;
+    private final org.springframework.beans.factory.ObjectProvider<UnauthorizedAccessHandler> unauthorizedAccessHandlerProvider;
 
     public SecurityConfig(org.springframework.beans.factory.ObjectProvider<JwtAuthenticationFilter> jwtAuthenticationFilterProvider,
-                          org.springframework.beans.factory.ObjectProvider<JwtAuthenticationEntryPoint> jwtAuthenticationEntryPointProvider) {
+                          org.springframework.beans.factory.ObjectProvider<JwtAuthenticationEntryPoint> jwtAuthenticationEntryPointProvider,
+                          org.springframework.beans.factory.ObjectProvider<UnauthorizedAccessHandler> unauthorizedAccessHandlerProvider) {
         this.jwtAuthenticationFilterProvider = jwtAuthenticationFilterProvider;
         this.jwtAuthenticationEntryPointProvider = jwtAuthenticationEntryPointProvider;
+        this.unauthorizedAccessHandlerProvider = unauthorizedAccessHandlerProvider;
     }
 
     @Bean
@@ -54,13 +58,28 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .anyRequest().permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/users/login", "/api/users/register").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/users/search").hasRole("ADMIN")
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/users").hasRole("ADMIN")
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/users").hasRole("ADMIN")
+                .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/users/{id}").hasRole("ADMIN")
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/users/{id}").hasAnyRole("USER", "ADMIN")
+                .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/users/{id}").hasAnyRole("USER", "ADMIN")
+                .requestMatchers("/api/roles/**").hasRole("ADMIN")
+                .requestMatchers("/api/users-data/**").hasRole("ADMIN")
+                .anyRequest().authenticated()
             );
 
         JwtAuthenticationEntryPoint entryPoint = jwtAuthenticationEntryPointProvider.getIfAvailable();
-        if (entryPoint != null) {
-            http.exceptionHandling(ex -> ex.authenticationEntryPoint(entryPoint));
-        }
+        UnauthorizedAccessHandler accessDeniedHandler = unauthorizedAccessHandlerProvider.getIfAvailable();
+        http.exceptionHandling(ex -> {
+            if (entryPoint != null) {
+                ex.authenticationEntryPoint(entryPoint);
+            }
+            if (accessDeniedHandler != null) {
+                ex.accessDeniedHandler(accessDeniedHandler);
+            }
+        });
 
         JwtAuthenticationFilter filter = jwtAuthenticationFilterProvider.getIfAvailable();
         if (filter != null) {

@@ -288,7 +288,7 @@ class UserLoginIntegrationTest {
     void shouldAuthenticateRequestWithBearerToken() throws Exception {
         String token = jwtService.generateToken(testUser, false);
 
-        mockMvc.perform(get("/api/users")
+        mockMvc.perform(get("/api/users/" + testUser.getId())
                 .header("Authorization", "Bearer " + token))
             .andExpect(status().isOk());
     }

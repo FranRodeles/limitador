@@ -31,4 +31,8 @@ public class UserLoginDTO implements Serializable {
         this.password = password;
         this.rememberMe = Boolean.TRUE.equals(rememberMe);
     }
+
+    public void setRememberMe(Boolean rememberMe) {
+        this.rememberMe = Boolean.TRUE.equals(rememberMe);
+    }
 }

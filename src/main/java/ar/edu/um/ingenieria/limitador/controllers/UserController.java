@@ -40,8 +40,8 @@ public class UserController {
 
     @GetMapping("/search")
     public ResponseEntity<UserDTO> searchByUsernameOrEmail(
-            @RequestParam String username,
-            @RequestParam String email) {
+            @RequestParam("username") String username,
+            @RequestParam("email") String email) {
         if (username.isBlank() || email.isBlank()) {
             return ResponseEntity.badRequest().build();
         }
@@ -51,7 +51,9 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UserDTO> findById(@PathVariable Long id) {
+    public ResponseEntity<UserDTO> findById(@PathVariable("id") Long id,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal ar.edu.um.ingenieria.limitador.domain.User principal) {
+        authorizeProfileAccess(principal, id);
         return userService.findDTOById(id)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
@@ -77,13 +79,27 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<UserDTO> update(@PathVariable Long id, @RequestBody UserDTO userDTO) {
+    public ResponseEntity<UserDTO> update(@PathVariable("id") Long id, @RequestBody UserDTO userDTO,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal ar.edu.um.ingenieria.limitador.domain.User principal) {
+        authorizeProfileAccess(principal, id);
         UserDTO updated = userService.updateDTO(id, userDTO);
         return ResponseEntity.ok(updated);
     }
 
+    private void authorizeProfileAccess(ar.edu.um.ingenieria.limitador.domain.User principal, Long id) {
+        if (principal == null) {
+            return;
+        }
+        boolean isAdmin = principal.getAuthorities().stream()
+            .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
+        boolean isOwner = principal.getId() != null && principal.getId().equals(id);
+        if (!isAdmin && !isOwner) {
+            throw new org.springframework.security.access.AccessDeniedException("No autorizado");
+        }
+    }
+
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteById(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteById(@PathVariable("id") Long id) {
         userService.deleteById(id);
         return ResponseEntity.noContent().build();
     }

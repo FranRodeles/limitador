@@ -145,7 +145,11 @@ public class UserServiceImpl implements UserService {
 
         User entity = userMapper.toEntity(userDTO);
         entity.setId(id);
-        entity.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+        if (userDTO.getPassword() == null || userDTO.getPassword().isBlank()) {
+            entity.setPassword(existing.getPassword());
+        } else {
+            entity.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+        }
         if (entity.getActivated() == null) {
             entity.setActivated(existing.getActivated());
         }
@@ -176,6 +180,7 @@ public class UserServiceImpl implements UserService {
         User entity = userMapper.toEntity(registerDTO);
         entity.setActivated(false);
         entity.setPassword(passwordEncoder.encode(registerDTO.getPassword()));
+        entity.setRoles(new HashSet<>(Set.of(findOrCreateRole("ROLE_USER"))));
 
         if (entity.getUserData() != null) {
             entity.getUserData().setId(null);
@@ -241,6 +246,13 @@ public class UserServiceImpl implements UserService {
             }
         }
         return resolved;
+    }
+
+    private Role findOrCreateRole(String roleName) {
+        Role role = new Role();
+        role.setRoleName(roleName);
+        role.setDescription(roleName);
+        return findOrCreateRole(role);
     }
 
     private Role findOrCreateRole(Role role) {

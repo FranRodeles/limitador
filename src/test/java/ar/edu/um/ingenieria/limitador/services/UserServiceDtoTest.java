@@ -319,6 +319,35 @@ class UserServiceDtoTest {
     }
 
     @Test
+    @DisplayName("Should preserve the stored password when UserDTO omits it on update")
+    void shouldPreserveStoredPasswordWhenDtoOmitsItOnUpdate() {
+        UserDTO updateDto = UserDTO.builder()
+            .username("updatedUser")
+            .email("updated@test.com")
+            .password(null)
+            .build();
+
+        User existingUser = createUser(5L, "oldUser", "old@test.com", "$2a$10$storedHash", true);
+        User mappedUser = createUser(null, "updatedUser", "updated@test.com", null, null);
+        User savedUser = createUser(5L, "updatedUser", "updated@test.com", "$2a$10$storedHash", true);
+        UserDTO resultDto = UserDTO.builder()
+            .id(5L)
+            .username("updatedUser")
+            .email("updated@test.com")
+            .build();
+
+        when(userRepository.findById(5L)).thenReturn(Optional.of(existingUser));
+        when(userMapper.toEntity(updateDto)).thenReturn(mappedUser);
+        when(userRepository.save(mappedUser)).thenReturn(savedUser);
+        when(userMapper.toDto(savedUser)).thenReturn(resultDto);
+
+        userService.updateDTO(5L, updateDto);
+
+        assertThat(mappedUser.getPassword()).isEqualTo("$2a$10$storedHash");
+        verify(passwordEncoder, never()).encode(any());
+    }
+
+    @Test
     @DisplayName("Should throw exception when updating non-existing UserDTO")
     void shouldThrowWhenUpdatingNonExistingUserDTO() {
         UserDTO updateDto = UserDTO.builder().username("ghost").build();
@@ -413,8 +442,13 @@ class UserServiceDtoTest {
             .phoneNumber("555-1234")
             .build();
 
+        Role userRole = new Role();
+        userRole.setId(2L);
+        userRole.setRoleName("ROLE_USER");
+
         when(userMapper.toEntity(registerDto)).thenReturn(entityToSave);
         when(passwordEncoder.encode("rawPassword123")).thenReturn("$2a$10$hashedPassword");
+        when(roleRepository.findByRoleName("ROLE_USER")).thenReturn(Optional.of(userRole));
         when(userRepository.save(entityToSave)).thenReturn(savedEntity);
         when(userMapper.toDto(savedEntity)).thenReturn(expectedDto);
 
@@ -434,6 +468,46 @@ class UserServiceDtoTest {
         verify(passwordEncoder).encode("rawPassword123");
         verify(userRepository).save(entityToSave);
         assertThat(entityToSave.getActivated()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should assign ROLE_USER when registering a new user")
+    void shouldAssignRoleUserWhenRegistering() {
+        UserRegisterDTO registerDto = UserRegisterDTO.builder()
+            .username("newUser")
+            .email("new@example.com")
+            .password("password123")
+            .firstName("New")
+            .lastName("User")
+            .build();
+
+        User entityToSave = createUser(null, "newUser", "new@example.com", "password123", false);
+        User savedEntity = createUser(7L, "newUser", "new@example.com", "$2a$10$hash", false);
+        UserDTO savedDto = UserDTO.builder()
+            .id(7L)
+            .username("newUser")
+            .email("new@example.com")
+            .activated(false)
+            .firstName("New")
+            .lastName("User")
+            .build();
+
+        Role existingUserRole = new Role();
+        existingUserRole.setId(2L);
+        existingUserRole.setRoleName("ROLE_USER");
+
+        when(userMapper.toEntity(registerDto)).thenReturn(entityToSave);
+        when(passwordEncoder.encode("password123")).thenReturn("$2a$10$hash");
+        when(roleRepository.findByRoleName("ROLE_USER")).thenReturn(Optional.of(existingUserRole));
+        when(userRepository.save(entityToSave)).thenReturn(savedEntity);
+        when(userMapper.toDto(savedEntity)).thenReturn(savedDto);
+
+        userService.register(registerDto);
+
+        assertThat(entityToSave.getRoles())
+            .extracting(Role::getRoleName)
+            .containsExactly("ROLE_USER");
+        verify(userRepository).save(entityToSave);
     }
 
     @Test
@@ -497,10 +571,15 @@ class UserServiceDtoTest {
 
         User entityToSave = createUser(null, "raceUser", "race@example.com", "password123", false);
 
+        Role userRole = new Role();
+        userRole.setId(2L);
+        userRole.setRoleName("ROLE_USER");
+
         when(userRepository.existsByUsername("raceUser")).thenReturn(false, true);
         when(userRepository.existsByEmail("race@example.com")).thenReturn(false);
         when(userMapper.toEntity(registerDto)).thenReturn(entityToSave);
         when(passwordEncoder.encode("password123")).thenReturn("$2a$10$hash");
+        when(roleRepository.findByRoleName("ROLE_USER")).thenReturn(Optional.of(userRole));
         when(userRepository.save(entityToSave))
             .thenThrow(new DataIntegrityViolationException("users_username_key"));
 
