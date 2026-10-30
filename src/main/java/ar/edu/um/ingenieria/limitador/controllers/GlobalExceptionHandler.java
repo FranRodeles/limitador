@@ -5,10 +5,34 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import ar.edu.um.ingenieria.limitador.exception.InvalidIpException;
+import ar.edu.um.ingenieria.limitador.exception.IpNotFoundException;
+import ar.edu.um.ingenieria.limitador.exception.PrivateIpAddressException;
 import ar.edu.um.ingenieria.limitador.exception.UserAlreadyExistsException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(InvalidIpException.class)
+    public ProblemDetail handleInvalidIp(InvalidIpException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        problemDetail.setTitle("Invalid IP Address");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(PrivateIpAddressException.class)
+    public ProblemDetail handlePrivateIp(PrivateIpAddressException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        problemDetail.setTitle("Private IP Address");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(IpNotFoundException.class)
+    public ProblemDetail handleIpNotFound(IpNotFoundException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        problemDetail.setTitle("IP Address Not Found");
+        return problemDetail;
+    }
 
     @ExceptionHandler(UserAlreadyExistsException.class)
     public ProblemDetail handleUserAlreadyExists(UserAlreadyExistsException ex) {
