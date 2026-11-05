@@ -8,6 +8,8 @@ import org.springframework.data.domain.Pageable;
 
 import ar.edu.um.ingenieria.limitador.domain.User;
 import ar.edu.um.ingenieria.limitador.dto.UserDTO;
+import ar.edu.um.ingenieria.limitador.dto.UserLoginDTO;
+import ar.edu.um.ingenieria.limitador.dto.UserLoginResponseDTO;
 import ar.edu.um.ingenieria.limitador.dto.UserRegisterDTO;
 
 public interface UserService {
@@ -25,5 +27,6 @@ public interface UserService {
     UserDTO saveDTO(UserDTO userDTO);
     UserDTO updateDTO(Long id, UserDTO userDTO);
     UserDTO register(UserRegisterDTO registerDTO);
-    ar.edu.um.ingenieria.limitador.dto.UserLoginResponseDTO login(ar.edu.um.ingenieria.limitador.dto.UserLoginDTO loginDTO);
+    UserLoginResponseDTO login(UserLoginDTO loginDTO);
+    UserLoginResponseDTO login(UserLoginDTO loginDTO, String clientIp);
 }

@@ -5,6 +5,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import ar.edu.um.ingenieria.limitador.exception.BlacklistedAccessException;
 import ar.edu.um.ingenieria.limitador.exception.InvalidIpException;
 import ar.edu.um.ingenieria.limitador.exception.IpNotFoundException;
 import ar.edu.um.ingenieria.limitador.exception.PrivateIpAddressException;
@@ -38,6 +39,16 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleUserAlreadyExists(UserAlreadyExistsException ex) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
         problemDetail.setTitle("User Already Exists");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(BlacklistedAccessException.class)
+    public ProblemDetail handleBlacklistedAccess(BlacklistedAccessException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+            HttpStatus.FORBIDDEN,
+            "Acceso bloqueado por políticas de seguridad"
+        );
+        problemDetail.setTitle("Forbidden");
         return problemDetail;
     }
 

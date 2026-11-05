@@ -5,11 +5,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -17,20 +19,26 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import ar.edu.um.ingenieria.limitador.domain.AuthenticationAttemptStatus;
 import ar.edu.um.ingenieria.limitador.domain.Role;
 import ar.edu.um.ingenieria.limitador.domain.User;
+import ar.edu.um.ingenieria.limitador.dto.BlacklistEvaluationResult;
 import ar.edu.um.ingenieria.limitador.dto.UserDTO;
 import ar.edu.um.ingenieria.limitador.dto.UserLoginDTO;
 import ar.edu.um.ingenieria.limitador.dto.UserLoginResponseDTO;
 import ar.edu.um.ingenieria.limitador.dto.UserRegisterDTO;
+import ar.edu.um.ingenieria.limitador.exception.BlacklistedAccessException;
 import ar.edu.um.ingenieria.limitador.exception.UserAlreadyExistsException;
 import ar.edu.um.ingenieria.limitador.mapper.UserMapper;
 import ar.edu.um.ingenieria.limitador.repository.RoleRepository;
 import ar.edu.um.ingenieria.limitador.repository.UserRepository;
+import ar.edu.um.ingenieria.limitador.security.ClientIpResolver;
 import ar.edu.um.ingenieria.limitador.security.JwtService;
 
 @Service
 public class UserServiceImpl implements UserService {
+
+    private static final String DEFAULT_LOCAL_IP = "127.0.0.1";
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -38,16 +46,33 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final BlacklistService blacklistService;
+    private final AuthenticationAttemptService authenticationAttemptService;
+    private final ClientIpResolver clientIpResolver;
 
-    public UserServiceImpl(UserRepository userRepository, RoleRepository roleRepository, 
-                          UserMapper userMapper, PasswordEncoder passwordEncoder,
-                          AuthenticationManager authenticationManager, JwtService jwtService) {
+    public UserServiceImpl(UserRepository userRepository, RoleRepository roleRepository,
+                           UserMapper userMapper, PasswordEncoder passwordEncoder,
+                           AuthenticationManager authenticationManager, JwtService jwtService) {
+        this(userRepository, roleRepository, userMapper, passwordEncoder,
+             authenticationManager, jwtService, null, null, null);
+    }
+
+    @Autowired
+    public UserServiceImpl(UserRepository userRepository, RoleRepository roleRepository,
+                           UserMapper userMapper, PasswordEncoder passwordEncoder,
+                           AuthenticationManager authenticationManager, JwtService jwtService,
+                           BlacklistService blacklistService,
+                           AuthenticationAttemptService authenticationAttemptService,
+                           ClientIpResolver clientIpResolver) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
+        this.blacklistService = blacklistService;
+        this.authenticationAttemptService = authenticationAttemptService;
+        this.clientIpResolver = clientIpResolver;
     }
 
     @Override
@@ -214,8 +239,41 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserLoginResponseDTO login(UserLoginDTO loginDTO) {
+        String resolvedIp = clientIpResolver != null
+            ? clientIpResolver.resolveCurrentClientIp()
+            : DEFAULT_LOCAL_IP;
+        return login(loginDTO, resolvedIp);
+    }
+
+    @Override
+    public UserLoginResponseDTO login(UserLoginDTO loginDTO, String clientIp) {
         if (loginDTO == null) {
             throw new IllegalArgumentException("Login data cannot be null");
+        }
+
+        String resolvedIp = (clientIp != null && !clientIp.isBlank())
+            ? clientIp.trim()
+            : (clientIpResolver != null ? clientIpResolver.resolveCurrentClientIp() : DEFAULT_LOCAL_IP);
+
+        String username = loginDTO.getUsername() != null ? loginDTO.getUsername().trim() : "";
+        User identifiedUser = (userRepository != null && !username.isEmpty())
+            ? userRepository.findByUsername(username).orElse(null)
+            : null;
+
+        // Consultar la blacklist por IP/CIDR y por usuario antes de autenticar o emitir JWT
+        if (blacklistService != null) {
+            BlacklistEvaluationResult evaluation = blacklistService.evaluate(resolvedIp, username, identifiedUser);
+            if (evaluation != null && evaluation.isBlocked()) {
+                recordAttemptSafe(
+                    resolvedIp,
+                    username,
+                    identifiedUser,
+                    false,
+                    evaluation.resolveAttemptStatus(),
+                    evaluation.buildRejectionReason()
+                );
+                throw new BlacklistedAccessException("Acceso bloqueado por políticas de seguridad");
+            }
         }
 
         try {
@@ -223,15 +281,70 @@ public class UserServiceImpl implements UserService {
                 new UsernamePasswordAuthenticationToken(loginDTO.getUsername(), loginDTO.getPassword())
             );
 
-            UserDetails user = (UserDetails) authentication.getPrincipal();
-            String token = jwtService.generateToken(user, loginDTO.isRememberMe());
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            if (identifiedUser == null && userDetails instanceof User principalUser) {
+                identifiedUser = principalUser;
+            }
+
+            String token = jwtService.generateToken(userDetails, loginDTO.isRememberMe());
+
+            recordAttemptSafe(
+                resolvedIp,
+                username,
+                identifiedUser,
+                true,
+                AuthenticationAttemptStatus.SUCCESS,
+                null
+            );
 
             return UserLoginResponseDTO.builder()
                 .token(token)
                 .message("Inicio de sesión exitoso")
                 .build();
         } catch (AuthenticationException ex) {
+            AuthenticationAttemptStatus failureStatus;
+            String failureReason;
+
+            if (identifiedUser == null) {
+                failureStatus = AuthenticationAttemptStatus.FAILURE_USER_NOT_FOUND;
+                failureReason = "El usuario no existe; intento no asociado a una cuenta registrada";
+            } else if (ex instanceof DisabledException || Boolean.FALSE.equals(identifiedUser.getActivated())) {
+                failureStatus = AuthenticationAttemptStatus.FAILURE_USER_INACTIVE;
+                failureReason = "Cuenta de usuario inactiva";
+            } else {
+                failureStatus = AuthenticationAttemptStatus.FAILURE_BAD_CREDENTIALS;
+                failureReason = "Credenciales inválidas";
+            }
+
+            recordAttemptSafe(
+                resolvedIp,
+                username,
+                identifiedUser,
+                false,
+                failureStatus,
+                failureReason
+            );
+
             throw new BadCredentialsException("Error de usuario y/o de password", ex);
+        }
+    }
+
+    private void recordAttemptSafe(
+            String clientIp,
+            String attemptedUsername,
+            User identifiedUser,
+            boolean successful,
+            AuthenticationAttemptStatus status,
+            String rejectionReason) {
+        if (authenticationAttemptService != null) {
+            authenticationAttemptService.recordAttempt(
+                clientIp,
+                attemptedUsername,
+                identifiedUser,
+                successful,
+                status,
+                rejectionReason
+            );
         }
     }
 

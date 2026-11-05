@@ -1,8 +1,8 @@
 {
   "info": {
     "_postman_id": "8d7d52f8-7c8b-4c41-9a9e-0c2b3e8c8c01",
-    "name": "SystemDesign API - CRUD",
-    "description": "Colección para la API de autenticación (/api/auth), usuarios (/api/users), roles (/api/roles) y datos de usuario (/api/users-data).",
+    "name": "SystemDesign API - CRUD, Auditoría IP & Blacklist",
+    "description": "Colección para la API de autenticación (/api/auth), usuarios (/api/users), roles (/api/roles), datos de usuario (/api/users-data), reglas de blacklist por IP/CIDR y usuario (/api/blacklist), e historial de intentos de autenticación e IPs registradas con geolocalización (/api/auth-attempts).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -33,12 +33,32 @@
       "value": "1"
     },
     {
+      "key": "blacklistRuleId",
+      "value": "1"
+    },
+    {
       "key": "searchUsername",
       "value": "juan.perez"
     },
     {
       "key": "searchEmail",
       "value": "juan.perez@example.com"
+    },
+    {
+      "key": "clientIp",
+      "value": "8.8.8.8"
+    },
+    {
+      "key": "blockedIpv4",
+      "value": "192.168.1.50"
+    },
+    {
+      "key": "blockedIpv4Cidr",
+      "value": "192.168.1.0/24"
+    },
+    {
+      "key": "blockedIpv6Cidr",
+      "value": "2001:db8::/32"
     },
     {
       "key": "page",
@@ -135,6 +155,498 @@
                 "auth",
                 "login"
               ]
+            }
+          }
+        },
+        {
+          "name": "Iniciar sesión con IP Pública (X-Forwarded-For -> Geolocalización)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.token) pm.collectionVariables.set('authToken', body.token);",
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Forwarded-For",
+                "value": "{{clientIp}}",
+                "description": "IP pública (ej. 8.8.8.8) para registrar Ciudad, País y ASN vía GeoIpService"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"juan.perez\",\n  \"password\": \"secret123\",\n  \"rememberMe\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Iniciar sesión fallido (Contraseña incorrecta)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401 Unauthorized and no JWT is generated', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.token).to.be.undefined;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Forwarded-For",
+                "value": "{{clientIp}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"juan.perez\",\n  \"password\": \"clave_incorrecta_999\",\n  \"rememberMe\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Iniciar sesión usuario inexistente (Sin cuenta asociada)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401 Unauthorized and attempt is logged with userIdentified=false', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.token).to.be.undefined;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Forwarded-For",
+                "value": "{{clientIp}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"usuario.inexistente\",\n  \"password\": \"secret123\",\n  \"rememberMe\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Iniciar sesión desde IP bloqueada (403 Forbidden)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403 Forbidden and no JWT is generated', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.token).to.be.undefined;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Forwarded-For",
+                "value": "{{blockedIpv4}}",
+                "description": "IP incluida en regla de blacklist (ej. 192.168.1.50/32 o 192.168.1.0/24)"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"juan.perez\",\n  \"password\": \"secret123\",\n  \"rememberMe\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Blacklist (IP / CIDR / Usuario)",
+      "item": [
+        {
+          "name": "Listar todas las reglas de blacklist",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/blacklist",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "blacklist"]
+            }
+          }
+        },
+        {
+          "name": "Listar reglas de blacklist por tipo (IP_CIDR)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/blacklist?type=IP_CIDR",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "blacklist"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "IP_CIDR",
+                  "description": "Filtra únicamente reglas por IP o máscara CIDR"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar reglas de blacklist por tipo (USER)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/blacklist?type=USER",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "blacklist"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "USER",
+                  "description": "Filtra únicamente reglas por usuario"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Obtener regla de blacklist por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/blacklist/{{blacklistRuleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "blacklist", "{{blacklistRuleId}}"]
+            }
+          }
+        },
+        {
+          "name": "Crear bloqueo de IP individual (/32)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.id) pm.collectionVariables.set('blacklistRuleId', body.id);",
+                  "pm.test('Rule created with 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ruleType\": \"IP_CIDR\",\n  \"targetValue\": \"{{blockedIpv4}}/32\",\n  \"reason\": \"Bloqueo de IP individual por intentos sospechosos\",\n  \"active\": true,\n  \"expiresAt\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/blacklist",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "blacklist"]
+            }
+          }
+        },
+        {
+          "name": "Crear bloqueo de rango IPv4 CIDR (/24)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.id) pm.collectionVariables.set('blacklistRuleId', body.id);",
+                  "pm.test('IPv4 CIDR rule created with 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ruleType\": \"IP_CIDR\",\n  \"targetValue\": \"{{blockedIpv4Cidr}}\",\n  \"reason\": \"Bloqueo de subred IPv4 completa (/24)\",\n  \"active\": true,\n  \"expiresAt\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/blacklist",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "blacklist"]
+            }
+          }
+        },
+        {
+          "name": "Crear bloqueo de rango IPv6 CIDR (/32)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.id) pm.collectionVariables.set('blacklistRuleId', body.id);",
+                  "pm.test('IPv6 CIDR rule created with 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ruleType\": \"IP_CIDR\",\n  \"targetValue\": \"{{blockedIpv6Cidr}}\",\n  \"reason\": \"Bloqueo de prefijo de red IPv6 (/32)\",\n  \"active\": true,\n  \"expiresAt\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/blacklist",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "blacklist"]
+            }
+          }
+        },
+        {
+          "name": "Crear bloqueo por Usuario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.id) pm.collectionVariables.set('blacklistRuleId', body.id);",
+                  "pm.test('User blacklist rule created with 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ruleType\": \"USER\",\n  \"targetValue\": \"{{searchUsername}}\",\n  \"userId\": {{userId}},\n  \"reason\": \"Cuenta bloqueada administrativamente independientemente de su IP\",\n  \"active\": true,\n  \"expiresAt\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/blacklist",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "blacklist"]
+            }
+          }
+        },
+        {
+          "name": "Actualizar regla de blacklist",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ruleType\": \"IP_CIDR\",\n  \"targetValue\": \"{{blockedIpv4}}/32\",\n  \"reason\": \"Regla modificada / desactivada temporalmente\",\n  \"active\": false,\n  \"expiresAt\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/blacklist/{{blacklistRuleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "blacklist", "{{blacklistRuleId}}"]
+            }
+          }
+        },
+        {
+          "name": "Eliminar regla de blacklist",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/blacklist/{{blacklistRuleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "blacklist", "{{blacklistRuleId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auditoría de Intentos e IPs Registradas",
+      "item": [
+        {
+          "name": "Listar todos los intentos de autenticación",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth-attempts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth-attempts"]
+            }
+          }
+        },
+        {
+          "name": "Filtrar intentos de autenticación por username",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth-attempts?username={{searchUsername}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth-attempts"],
+              "query": [
+                {
+                  "key": "username",
+                  "value": "{{searchUsername}}",
+                  "description": "Nombre de usuario intentado (registrado o inexistente)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filtrar intentos de autenticación por dirección IP",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth-attempts?ip={{clientIp}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth-attempts"],
+              "query": [
+                {
+                  "key": "ip",
+                  "value": "{{clientIp}}",
+                  "description": "Dirección IPv4 o IPv6 a consultar"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar direcciones IP registradas (con Ciudad, País y ASN)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth-attempts/ips",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth-attempts", "ips"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Geolocalización GeoIP",
+      "auth": {
+        "type": "noauth"
+      },
+      "item": [
+        {
+          "name": "Consultar geolocalización y ASN de IP pública",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/geoip/{{clientIp}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "geoip", "{{clientIp}}"]
             }
           }
         }
