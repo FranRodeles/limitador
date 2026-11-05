@@ -39,4 +39,7 @@ boot.sh
 boot.ps1
 
 # Antigravity agents
-.agents/
+.agents/
+
+# Enviroment
+.env
